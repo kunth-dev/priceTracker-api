@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { ErrorCode, ErrorMessages } from "../constants/errorCodes";
 import type { User } from "../types/user";
+import { constantTimeCompare } from "../utils/crypto";
 
 // Custom error class that includes error code
 class ServiceError extends Error {
@@ -111,12 +112,7 @@ export function loginUser(email: string, password: string): User {
   }
 
   // Use constant-time comparison to prevent timing attacks
-  const storedHashBuffer = Buffer.from(matchedUser.password, "hex");
-  const inputHashBuffer = Buffer.from(hashedPassword, "hex");
-  if (
-    storedHashBuffer.length === inputHashBuffer.length &&
-    crypto.timingSafeEqual(storedHashBuffer, inputHashBuffer)
-  ) {
+  if (constantTimeCompare(matchedUser.password, hashedPassword, "hex")) {
     const { password: _, ...userWithoutPassword } = matchedUser;
     return userWithoutPassword;
   }
@@ -165,12 +161,7 @@ export function resetPassword(email: string, code: string, newPassword: string):
   }
 
   // Check if code matches (constant-time comparison)
-  const storedCodeBuffer = Buffer.from(resetData.code, "utf8");
-  const inputCodeBuffer = Buffer.from(code, "utf8");
-  if (
-    storedCodeBuffer.length !== inputCodeBuffer.length ||
-    !crypto.timingSafeEqual(storedCodeBuffer, inputCodeBuffer)
-  ) {
+  if (!constantTimeCompare(resetData.code, code)) {
     throw new ServiceError(ErrorCode.INVALID_RESET_CODE);
   }
 
