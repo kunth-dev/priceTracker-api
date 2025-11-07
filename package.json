@@ -1,0 +1,54 @@
+{
+  "name": "crypton-backend",
+  "version": "1.0.0",
+  "description": "Backend for crypto trading using external API",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "dev:production": "NODE_ENV=production tsx watch --env-file=.env.production src/server.ts",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "format": "biome format --write src/",
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [
+    "bot",
+    "crypto",
+    "trading",
+    "api"
+  ],
+  "author": "Kanstantsin Hrytsuk",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.12.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "es-toolkit": "^1.19.0",
+    "express": "^4.19.2",
+    "grammy": "^1.23.0",
+    "helmet": "^7.1.0",
+    "serverless-http": "^4.0.0",
+    "stream": "^0.0.3",
+    "typescript": "^5.6.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.8.3",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.5.4",
+    "@types/supertest": "^6.0.3",
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.4",
+    "tsx": "^4.19.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
