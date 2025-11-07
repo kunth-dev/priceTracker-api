@@ -7,6 +7,38 @@ import { UpdateUserSchema } from "../types/user";
 
 const router = Router();
 
+// Get user data (GET /api/user/:userId)
+router.get(
+  "/:userId",
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { userId } = req.params;
+
+    if (!userId) {
+      throw new AppError("User ID is required", 400);
+    }
+
+    try {
+      const user = userService.getUserById(userId);
+
+      if (!user) {
+        throw new AppError("User not found", 404);
+      }
+
+      const response: ApiResponse = {
+        success: true,
+        data: user,
+      };
+
+      res.status(200).json(response);
+    } catch (error) {
+      if (error instanceof Error && error.message === "User not found") {
+        throw new AppError(error.message, 404);
+      }
+      throw error;
+    }
+  }),
+);
+
 // Delete user (DELETE /api/user/:userId)
 router.delete(
   "/:userId",
@@ -88,21 +120,6 @@ router.put(
       }
       throw error;
     }
-  }),
-);
-
-// Example private endpoint that requires authentication
-router.get(
-  "/profile",
-  asyncHandler(async (_req: Request, res: Response): Promise<void> => {
-    res.json({
-      success: true,
-      data: {
-        message: "This is a protected endpoint",
-        user: "authenticated-user",
-        timestamp: new Date().toISOString(),
-      },
-    });
   }),
 );
 

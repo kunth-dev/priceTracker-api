@@ -1,13 +1,13 @@
 import { Router } from "express";
 
 // Import public route modules
+import authRoutes from "./auth";
 import healthRoutes from "./health";
-import userPublicRoutes from "./userPublic";
 
 const router = Router();
 
 // Public routes - no authentication required
 router.use("/health", healthRoutes);
-router.use("/user", userPublicRoutes);
+router.use("/auth", authRoutes);
 
 export default router;

@@ -12,7 +12,7 @@ import {
 
 const router = Router();
 
-// Create user (POST /api/user/register)
+// Register user (POST /api/auth/register)
 router.post(
   "/register",
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -44,7 +44,7 @@ router.post(
   }),
 );
 
-// Send reset password code (POST /api/user/send-reset-code)
+// Send reset password code (POST /api/auth/send-reset-code)
 router.post(
   "/send-reset-code",
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -78,7 +78,7 @@ router.post(
   }),
 );
 
-// Reset password (POST /api/user/reset-password)
+// Reset password (POST /api/auth/reset-password)
 router.post(
   "/reset-password",
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
@@ -117,7 +117,7 @@ router.post(
   }),
 );
 
-// Forgot password (POST /api/user/forgot-password)
+// Forgot password (POST /api/auth/forgot-password)
 // Note: This endpoint duplicates send-reset-code functionality. In the issue specification,
 // both "send reset password code" and "forgot password" were listed as separate requirements.
 // They both send a reset code to the user's email. In a production system, you might want to
