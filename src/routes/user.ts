@@ -21,7 +21,7 @@ router.get(
       throw new AppError("User ID is required", 400, ErrorCode.MISSING_REQUIRED_FIELD);
     }
 
-    const user = userService.getUserById(userId);
+    const user = await userService.getUserById(userId);
 
     if (!user) {
       throw new AppError("User not found", 404, ErrorCode.USER_NOT_FOUND);
@@ -47,7 +47,7 @@ router.delete(
     }
 
     try {
-      userService.deleteUser(userId);
+      await userService.deleteUser(userId);
 
       const response: ApiResponse = {
         success: true,
@@ -91,7 +91,7 @@ router.patch(
     }
 
     try {
-      const updatedUser = userService.updateUser(userId, filteredUpdates);
+      const updatedUser = await userService.updateUser(userId, filteredUpdates);
 
       const response: ApiResponse = {
         success: true,

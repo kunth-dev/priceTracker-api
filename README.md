@@ -11,6 +11,7 @@ Backend API for crypto trading application with user management and authenticati
 - Input validation with Zod
 - Error handling with detailed error messages
 - Machine-readable error codes
+- PostgreSQL database with DrizzleORM
 
 ## Getting Started
 
@@ -18,6 +19,7 @@ Backend API for crypto trading application with user management and authenticati
 
 - Node.js >= 18.0.0
 - npm or yarn
+- PostgreSQL >= 12.0
 
 ### Installation
 
@@ -38,6 +40,40 @@ Required environment variables:
 - `NODE_ENV` - Environment (development, production, test)
 - `ALLOWED_DOMAINS` - Comma-separated list of allowed CORS domains
 - `BEARER_TOKENS` - Comma-separated list of valid bearer tokens for authentication
+- `DATABASE_URL` - PostgreSQL connection string (e.g., `postgresql://user:password@localhost:5432/crypton_db`)
+
+### Database Setup
+
+This application uses PostgreSQL with DrizzleORM. Follow these steps to set up the database:
+
+1. **Install PostgreSQL** (if not already installed)
+   ```bash
+   # macOS
+   brew install postgresql@15
+   brew services start postgresql@15
+   
+   # Ubuntu/Debian
+   sudo apt install postgresql postgresql-contrib
+   ```
+
+2. **Create the database**
+   ```bash
+   psql -U postgres
+   CREATE DATABASE crypton_db;
+   \q
+   ```
+
+3. **Configure DATABASE_URL** in your `.env` file
+   ```env
+   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/crypton_db
+   ```
+
+4. **Push database schema**
+   ```bash
+   npm run db:push
+   ```
+
+For detailed database documentation, see [docs/DATABASE.md](./docs/DATABASE.md).
 
 ### Running the Application
 
@@ -56,6 +92,12 @@ npm run lint
 
 # Run tests
 npm test
+
+# Database commands
+npm run db:push      # Push schema to database
+npm run db:generate  # Generate migrations
+npm run db:migrate   # Run migrations
+npm run db:studio    # Open Drizzle Studio (database GUI)
 ```
 
 ## API Documentation
@@ -63,6 +105,7 @@ npm test
 Complete API documentation is available in [docs/API.md](./docs/API.md).
 
 **Quick Links:**
+- [Database Setup & Configuration](./docs/DATABASE.md) - PostgreSQL and DrizzleORM setup
 - [Auth Endpoints](./docs/API.md#auth-endpoints-public---no-authentication-required) (Public - No authentication)
   - Register, Login, Forgot Password, Reset Password
 - [User Endpoints](./docs/API.md#user-endpoints-protected---authentication-required) (Protected - Authentication required)
@@ -75,7 +118,7 @@ Complete API documentation is available in [docs/API.md](./docs/API.md).
 ### Current Implementation (Demo/Development)
 
 - **Password Hashing:** Uses SHA-256 (NOT secure for production)
-- **Storage:** In-memory Map (data lost on restart)
+- **Storage:** PostgreSQL database with DrizzleORM
 - **Reset Codes:** Logged to console (not sent via email)
 
 ### Production Requirements
@@ -83,13 +126,15 @@ Complete API documentation is available in [docs/API.md](./docs/API.md).
 Before deploying to production, implement:
 
 1. **Password Hashing:** Replace SHA-256 with bcrypt, scrypt, or Argon2
-2. **Database:** Replace in-memory storage with proper database (PostgreSQL, MongoDB, etc.)
+2. **Database Security:** Enable SSL/TLS for database connections
 3. **Email Service:** Integrate email service (SendGrid, AWS SES, etc.) for reset codes
 4. **Rate Limiting:** Add rate limiting to prevent brute force attacks
 5. **HTTPS:** Ensure all traffic uses HTTPS
 6. **Token Management:** Implement JWT or session-based authentication
 7. **Input Sanitization:** Add additional input sanitization for XSS prevention
 8. **Audit Logging:** Log all security-relevant events
+9. **Database Backups:** Implement automated backup strategy
+10. **Connection Pooling:** Configure connection pooling for better performance
 
 ## Development
 
@@ -98,7 +143,10 @@ Before deploying to production, implement:
 ```
 src/
 ├── config/          # Environment configuration
+│   └── database.ts  # Database connection setup
 ├── constants/       # Application constants (error codes, etc.)
+├── db/              # Database schema and migrations
+│   └── schema.ts    # Drizzle schema definitions
 ├── middleware/      # Express middleware (auth, error handling)
 ├── routes/          # API route handlers
 │   ├── auth.ts      # Authentication endpoints
