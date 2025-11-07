@@ -17,25 +17,18 @@ router.get(
       throw new AppError("User ID is required", 400);
     }
 
-    try {
-      const user = userService.getUserById(userId);
+    const user = userService.getUserById(userId);
 
-      if (!user) {
-        throw new AppError("User not found", 404);
-      }
-
-      const response: ApiResponse = {
-        success: true,
-        data: user,
-      };
-
-      res.status(200).json(response);
-    } catch (error) {
-      if (error instanceof Error && error.message === "User not found") {
-        throw new AppError(error.message, 404);
-      }
-      throw error;
+    if (!user) {
+      throw new AppError("User not found", 404);
     }
+
+    const response: ApiResponse = {
+      success: true,
+      data: user,
+    };
+
+    res.status(200).json(response);
   }),
 );
 
