@@ -88,17 +88,21 @@ export function getUserByEmail(email: string): User | null {
  * Verify user credentials and return user if valid
  */
 export function loginUser(email: string, password: string): User {
+  const hashedPassword = hashPassword(password);
+
   // Find user by email (need to check with password)
   for (const user of users.values()) {
     if (user.email === email) {
-      const hashedPassword = hashPassword(password);
       if (user.password === hashedPassword) {
         const { password: _, ...userWithoutPassword } = user;
         return userWithoutPassword;
       }
+      // Password doesn't match - throw error
       throw new Error("Invalid credentials");
     }
   }
+
+  // User not found - throw error
   throw new Error("Invalid credentials");
 }
 
