@@ -4,10 +4,12 @@ import type { ApiResponse } from "../types/api.js";
 export class AppError extends Error {
   public readonly statusCode: number;
   public readonly isOperational: boolean;
+  public readonly errorCode: string | undefined;
 
-  constructor(message: string, statusCode = 500, isOperational = true) {
+  constructor(message: string, statusCode = 500, errorCode?: string, isOperational = true) {
     super(message);
     this.statusCode = statusCode;
+    this.errorCode = errorCode;
     this.isOperational = isOperational;
 
     Error.captureStackTrace(this, this.constructor);
@@ -22,17 +24,20 @@ export const errorHandler = (
 ): void => {
   let statusCode = 500;
   let message = "Internal server error";
+  let errorCode: string | undefined;
   let isOperational = false;
 
   if (error instanceof AppError) {
     statusCode = error.statusCode;
     message = error.message;
+    errorCode = error.errorCode;
     isOperational = error.isOperational;
   }
 
   // Log error details
   console.error(`[${new Date().toISOString()}] Error ${statusCode}:`, {
     message: error.message,
+    errorCode,
     stack: error.stack,
     url: req.url,
     method: req.method,
@@ -43,6 +48,7 @@ export const errorHandler = (
   const response: ApiResponse = {
     success: false,
     error: message,
+    errorCode,
   };
 
   // In development, include stack trace

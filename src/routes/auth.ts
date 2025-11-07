@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import { AppError, asyncHandler } from "../middleware/errorHandler";
+import { asyncHandler } from "../middleware/errorHandler";
 import * as userService from "../services/userService";
 import type { ApiResponse } from "../types/api";
 import {
@@ -10,6 +10,8 @@ import {
   ResetPasswordSchema,
   SendResetCodeSchema,
 } from "../types/user";
+import { handleServiceError } from "../utils/errorHandler";
+import { validateRequest } from "../utils/validation";
 
 const router = Router();
 
@@ -17,14 +19,7 @@ const router = Router();
 router.post(
   "/register",
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const validationResult = CreateUserSchema.safeParse(req.body);
-
-    if (!validationResult.success) {
-      const errorMessage = validationResult.error.errors[0]?.message || "Validation failed";
-      throw new AppError(errorMessage, 400);
-    }
-
-    const { email, password } = validationResult.data;
+    const { email, password } = validateRequest(CreateUserSchema, req.body);
 
     try {
       const user = userService.createUser(email, password);
@@ -37,10 +32,7 @@ router.post(
 
       res.status(201).json(response);
     } catch (error) {
-      if (error instanceof Error && error.message === "User with this email already exists") {
-        throw new AppError(error.message, 409);
-      }
-      throw error;
+      handleServiceError(error);
     }
   }),
 );
@@ -49,14 +41,7 @@ router.post(
 router.post(
   "/login",
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const validationResult = LoginSchema.safeParse(req.body);
-
-    if (!validationResult.success) {
-      const errorMessage = validationResult.error.errors[0]?.message || "Validation failed";
-      throw new AppError(errorMessage, 400);
-    }
-
-    const { email, password } = validationResult.data;
+    const { email, password } = validateRequest(LoginSchema, req.body);
 
     try {
       const user = userService.loginUser(email, password);
@@ -69,10 +54,7 @@ router.post(
 
       res.status(200).json(response);
     } catch (error) {
-      if (error instanceof Error && error.message === "Invalid credentials") {
-        throw new AppError(error.message, 401);
-      }
-      throw error;
+      handleServiceError(error);
     }
   }),
 );
@@ -81,14 +63,7 @@ router.post(
 router.post(
   "/send-reset-code",
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const validationResult = SendResetCodeSchema.safeParse(req.body);
-
-    if (!validationResult.success) {
-      const errorMessage = validationResult.error.errors[0]?.message || "Validation failed";
-      throw new AppError(errorMessage, 400);
-    }
-
-    const { email } = validationResult.data;
+    const { email } = validateRequest(SendResetCodeSchema, req.body);
 
     try {
       const { expiresAt } = userService.sendResetCode(email);
@@ -103,10 +78,7 @@ router.post(
 
       res.status(200).json(response);
     } catch (error) {
-      if (error instanceof Error && error.message === "User not found") {
-        throw new AppError(error.message, 404);
-      }
-      throw error;
+      handleServiceError(error);
     }
   }),
 );
@@ -115,14 +87,7 @@ router.post(
 router.post(
   "/reset-password",
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const validationResult = ResetPasswordSchema.safeParse(req.body);
-
-    if (!validationResult.success) {
-      const errorMessage = validationResult.error.errors[0]?.message || "Validation failed";
-      throw new AppError(errorMessage, 400);
-    }
-
-    const { email, code, newPassword } = validationResult.data;
+    const { email, code, newPassword } = validateRequest(ResetPasswordSchema, req.body);
 
     try {
       userService.resetPassword(email, code, newPassword);
@@ -134,18 +99,7 @@ router.post(
 
       res.status(200).json(response);
     } catch (error) {
-      if (error instanceof Error) {
-        if (
-          error.message === "User not found" ||
-          error.message === "No reset code found for this email"
-        ) {
-          throw new AppError(error.message, 404);
-        }
-        if (error.message === "Invalid reset code" || error.message === "Reset code has expired") {
-          throw new AppError(error.message, 400);
-        }
-      }
-      throw error;
+      handleServiceError(error);
     }
   }),
 );
@@ -159,14 +113,7 @@ router.post(
 router.post(
   "/forgot-password",
   asyncHandler(async (req: Request, res: Response): Promise<void> => {
-    const validationResult = ForgotPasswordSchema.safeParse(req.body);
-
-    if (!validationResult.success) {
-      const errorMessage = validationResult.error.errors[0]?.message || "Validation failed";
-      throw new AppError(errorMessage, 400);
-    }
-
-    const { email } = validationResult.data;
+    const { email } = validateRequest(ForgotPasswordSchema, req.body);
 
     try {
       const { expiresAt } = userService.sendResetCode(email);
@@ -181,10 +128,7 @@ router.post(
 
       res.status(200).json(response);
     } catch (error) {
-      if (error instanceof Error && error.message === "User not found") {
-        throw new AppError(error.message, 404);
-      }
-      throw error;
+      handleServiceError(error);
     }
   }),
 );

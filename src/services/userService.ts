@@ -32,11 +32,10 @@ function hashPassword(password: string): string {
  * Create a new user
  */
 export function createUser(email: string, password: string): User {
-  // Check if user already exists
-  for (const user of users.values()) {
-    if (user.email === email) {
-      throw new Error("User with this email already exists");
-    }
+  // Check if user already exists using filter
+  const existingUsers = Array.from(users.values()).filter((user) => user.email === email);
+  if (existingUsers.length > 0) {
+    throw new Error("User with this email already exists");
   }
 
   const userId = generateUserId();
@@ -75,13 +74,19 @@ export function getUserById(userId: string): User | null {
  * Get user by email
  */
 export function getUserByEmail(email: string): User | null {
-  for (const user of users.values()) {
-    if (user.email === email) {
-      const { password: _, ...userWithoutPassword } = user;
-      return userWithoutPassword;
-    }
+  const matchingUsers = Array.from(users.values()).filter((user) => user.email === email);
+
+  if (matchingUsers.length === 0) {
+    return null;
   }
-  return null;
+
+  const matchedUser = matchingUsers[0];
+  if (!matchedUser) {
+    return null;
+  }
+
+  const { password: _, ...userWithoutPassword } = matchedUser;
+  return userWithoutPassword;
 }
 
 /**
@@ -90,19 +95,25 @@ export function getUserByEmail(email: string): User | null {
 export function loginUser(email: string, password: string): User {
   const hashedPassword = hashPassword(password);
 
-  // Find user by email (need to check with password)
-  for (const user of users.values()) {
-    if (user.email === email) {
-      if (user.password === hashedPassword) {
-        const { password: _, ...userWithoutPassword } = user;
-        return userWithoutPassword;
-      }
-      // Password doesn't match - throw error
-      throw new Error("Invalid credentials");
-    }
+  // Find user by email using filter
+  const matchingUsers = Array.from(users.values()).filter((user) => user.email === email);
+
+  if (matchingUsers.length === 0) {
+    // User not found - throw error
+    throw new Error("Invalid credentials");
   }
 
-  // User not found - throw error
+  const matchedUser = matchingUsers[0];
+  if (!matchedUser) {
+    throw new Error("Invalid credentials");
+  }
+
+  if (matchedUser.password === hashedPassword) {
+    const { password: _, ...userWithoutPassword } = matchedUser;
+    return userWithoutPassword;
+  }
+
+  // Password doesn't match - throw error
   throw new Error("Invalid credentials");
 }
 
@@ -156,13 +167,16 @@ export function resetPassword(email: string, code: string, newPassword: string):
     throw new Error("Reset code has expired");
   }
 
-  // Find user in storage and update password
-  for (const [userId, storedUser] of users.entries()) {
-    if (storedUser.email === email) {
+  // Find user in storage and update password using filter
+  const userEntries = Array.from(users.entries()).filter(([_, u]) => u.email === email);
+
+  if (userEntries.length > 0) {
+    const entry = userEntries[0];
+    if (entry) {
+      const [userId, storedUser] = entry;
       storedUser.password = hashPassword(newPassword);
       storedUser.updatedAt = new Date().toISOString();
       users.set(userId, storedUser);
-      break;
     }
   }
 
@@ -193,13 +207,16 @@ export function updateUser(userId: string, updates: { email?: string; password?:
     throw new Error("User not found");
   }
 
-  // If updating email, check if new email is already in use
+  // If updating email, check if new email is already in use using filter
   if (updates.email && updates.email !== user.email) {
-    for (const existingUser of users.values()) {
-      if (existingUser.email === updates.email) {
-        throw new Error("Email already in use");
-      }
+    const existingUsers = Array.from(users.values()).filter(
+      (existingUser) => existingUser.email === updates.email,
+    );
+
+    if (existingUsers.length > 0) {
+      throw new Error("Email already in use");
     }
+
     user.email = updates.email;
   }
 
