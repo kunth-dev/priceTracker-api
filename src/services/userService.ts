@@ -1,5 +1,17 @@
 import crypto from "node:crypto";
+import { ErrorCode, ErrorMessages } from "../constants/errorCodes";
 import type { User } from "../types/user";
+
+// Custom error class that includes error code
+class ServiceError extends Error {
+  constructor(
+    public readonly errorCode: ErrorCode,
+    message?: string,
+  ) {
+    super(message || ErrorMessages[errorCode]);
+    this.name = "ServiceError";
+  }
+}
 
 // In-memory storage for users and reset codes
 const users = new Map<string, User & { password: string }>();
@@ -32,10 +44,10 @@ function hashPassword(password: string): string {
  * Create a new user
  */
 export function createUser(email: string, password: string): User {
-  // Check if user already exists using filter
-  const existingUsers = Array.from(users.values()).filter((user) => user.email === email);
-  if (existingUsers.length > 0) {
-    throw new Error("User with this email already exists");
+  // Check if user already exists using some
+  const userExists = Array.from(users.values()).some((user) => user.email === email);
+  if (userExists) {
+    throw new ServiceError(ErrorCode.USER_ALREADY_EXISTS);
   }
 
   const userId = generateUserId();
@@ -74,13 +86,8 @@ export function getUserById(userId: string): User | null {
  * Get user by email
  */
 export function getUserByEmail(email: string): User | null {
-  const matchingUsers = Array.from(users.values()).filter((user) => user.email === email);
+  const matchedUser = Array.from(users.values()).find((user) => user.email === email);
 
-  if (matchingUsers.length === 0) {
-    return null;
-  }
-
-  const matchedUser = matchingUsers[0];
   if (!matchedUser) {
     return null;
   }
@@ -95,17 +102,12 @@ export function getUserByEmail(email: string): User | null {
 export function loginUser(email: string, password: string): User {
   const hashedPassword = hashPassword(password);
 
-  // Find user by email using filter
-  const matchingUsers = Array.from(users.values()).filter((user) => user.email === email);
+  // Find user by email using find
+  const matchedUser = Array.from(users.values()).find((user) => user.email === email);
 
-  if (matchingUsers.length === 0) {
-    // User not found - throw error
-    throw new Error("Invalid credentials");
-  }
-
-  const matchedUser = matchingUsers[0];
   if (!matchedUser) {
-    throw new Error("Invalid credentials");
+    // User not found - throw error
+    throw new ServiceError(ErrorCode.INVALID_CREDENTIALS);
   }
 
   if (matchedUser.password === hashedPassword) {
@@ -114,7 +116,7 @@ export function loginUser(email: string, password: string): User {
   }
 
   // Password doesn't match - throw error
-  throw new Error("Invalid credentials");
+  throw new ServiceError(ErrorCode.INVALID_CREDENTIALS);
 }
 
 /**
@@ -124,7 +126,7 @@ export function sendResetCode(email: string): { code: string; expiresAt: Date } 
   // Check if user exists
   const user = getUserByEmail(email);
   if (!user) {
-    throw new Error("User not found");
+    throw new ServiceError(ErrorCode.USER_NOT_FOUND);
   }
 
   const code = generateResetCode();
@@ -147,37 +149,34 @@ export function resetPassword(email: string, code: string, newPassword: string):
   // Check if user exists
   const user = getUserByEmail(email);
   if (!user) {
-    throw new Error("User not found");
+    throw new ServiceError(ErrorCode.USER_NOT_FOUND);
   }
 
   // Check if reset code exists
   const resetData = resetCodes.get(email);
   if (!resetData) {
-    throw new Error("No reset code found for this email");
+    throw new ServiceError(ErrorCode.RESET_CODE_NOT_FOUND);
   }
 
   // Check if code matches
   if (resetData.code !== code) {
-    throw new Error("Invalid reset code");
+    throw new ServiceError(ErrorCode.INVALID_RESET_CODE);
   }
 
   // Check if code has expired
   if (new Date() > resetData.expiresAt) {
     resetCodes.delete(email);
-    throw new Error("Reset code has expired");
+    throw new ServiceError(ErrorCode.RESET_CODE_EXPIRED);
   }
 
-  // Find user in storage and update password using filter
-  const userEntries = Array.from(users.entries()).filter(([_, u]) => u.email === email);
+  // Find user in storage and update password using find
+  const userEntry = Array.from(users.entries()).find(([_, u]) => u.email === email);
 
-  if (userEntries.length > 0) {
-    const entry = userEntries[0];
-    if (entry) {
-      const [userId, storedUser] = entry;
-      storedUser.password = hashPassword(newPassword);
-      storedUser.updatedAt = new Date().toISOString();
-      users.set(userId, storedUser);
-    }
+  if (userEntry) {
+    const [userId, storedUser] = userEntry;
+    storedUser.password = hashPassword(newPassword);
+    storedUser.updatedAt = new Date().toISOString();
+    users.set(userId, storedUser);
   }
 
   // Delete used reset code
@@ -190,7 +189,7 @@ export function resetPassword(email: string, code: string, newPassword: string):
 export function deleteUser(userId: string): void {
   const user = users.get(userId);
   if (!user) {
-    throw new Error("User not found");
+    throw new ServiceError(ErrorCode.USER_NOT_FOUND);
   }
 
   users.delete(userId);
@@ -204,17 +203,17 @@ export function deleteUser(userId: string): void {
 export function updateUser(userId: string, updates: { email?: string; password?: string }): User {
   const user = users.get(userId);
   if (!user) {
-    throw new Error("User not found");
+    throw new ServiceError(ErrorCode.USER_NOT_FOUND);
   }
 
-  // If updating email, check if new email is already in use using filter
+  // If updating email, check if new email is already in use using some
   if (updates.email && updates.email !== user.email) {
-    const existingUsers = Array.from(users.values()).filter(
+    const emailInUse = Array.from(users.values()).some(
       (existingUser) => existingUser.email === updates.email,
     );
 
-    if (existingUsers.length > 0) {
-      throw new Error("Email already in use");
+    if (emailInUse) {
+      throw new ServiceError(ErrorCode.EMAIL_ALREADY_IN_USE);
     }
 
     user.email = updates.email;

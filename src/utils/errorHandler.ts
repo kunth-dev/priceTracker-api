@@ -1,62 +1,50 @@
 import { ErrorCode } from "../constants/errorCodes";
 import { AppError } from "../middleware/errorHandler";
 
+// ServiceError interface to match the error thrown by userService
+interface ServiceError extends Error {
+  errorCode: ErrorCode;
+}
+
+/**
+ * Type guard to check if error is a ServiceError
+ */
+function isServiceError(error: unknown): error is ServiceError {
+  return (
+    error instanceof Error &&
+    "errorCode" in error &&
+    typeof (error as ServiceError).errorCode === "string"
+  );
+}
+
 /**
  * Handles service errors and converts them to AppError with appropriate status codes and error codes
  * @param error Error thrown by service layer
  * @throws AppError with appropriate status code and error code
  */
 export function handleServiceError(error: unknown): never {
-  if (error instanceof Error) {
-    // Map error messages to error codes and status codes
-    const errorMappings: Array<{
-      message: string;
-      code: ErrorCode;
-      status: number;
-    }> = [
-      {
-        message: "User not found",
-        code: ErrorCode.USER_NOT_FOUND,
-        status: 404,
-      },
-      {
-        message: "User with this email already exists",
-        code: ErrorCode.USER_ALREADY_EXISTS,
-        status: 409,
-      },
-      {
-        message: "Email already in use",
-        code: ErrorCode.EMAIL_ALREADY_IN_USE,
-        status: 409,
-      },
-      {
-        message: "Invalid credentials",
-        code: ErrorCode.INVALID_CREDENTIALS,
-        status: 401,
-      },
-      {
-        message: "No reset code found for this email",
-        code: ErrorCode.RESET_CODE_NOT_FOUND,
-        status: 404,
-      },
-      {
-        message: "Invalid reset code",
-        code: ErrorCode.INVALID_RESET_CODE,
-        status: 400,
-      },
-      {
-        message: "Reset code has expired",
-        code: ErrorCode.RESET_CODE_EXPIRED,
-        status: 400,
-      },
-    ];
+  // Handle ServiceError with error codes
+  if (isServiceError(error)) {
+    const errorCodeToStatus: Record<ErrorCode, number> = {
+      [ErrorCode.VALIDATION_FAILED]: 400,
+      [ErrorCode.INVALID_EMAIL]: 400,
+      [ErrorCode.INVALID_PASSWORD]: 400,
+      [ErrorCode.MISSING_REQUIRED_FIELD]: 400,
+      [ErrorCode.INVALID_CREDENTIALS]: 401,
+      [ErrorCode.MISSING_AUTHORIZATION]: 401,
+      [ErrorCode.INVALID_TOKEN]: 401,
+      [ErrorCode.USER_NOT_FOUND]: 404,
+      [ErrorCode.USER_ALREADY_EXISTS]: 409,
+      [ErrorCode.EMAIL_ALREADY_IN_USE]: 409,
+      [ErrorCode.RESET_CODE_NOT_FOUND]: 404,
+      [ErrorCode.INVALID_RESET_CODE]: 400,
+      [ErrorCode.RESET_CODE_EXPIRED]: 400,
+      [ErrorCode.INTERNAL_SERVER_ERROR]: 500,
+      [ErrorCode.RESOURCE_NOT_FOUND]: 404,
+    };
 
-    // Find matching error mapping
-    const mapping = errorMappings.find((m) => m.message === error.message);
-
-    if (mapping) {
-      throw new AppError(error.message, mapping.status, mapping.code);
-    }
+    const status = errorCodeToStatus[error.errorCode] || 500;
+    throw new AppError(error.message, status, error.errorCode);
   }
 
   // Re-throw unknown errors
