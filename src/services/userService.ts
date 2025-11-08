@@ -1,5 +1,8 @@
 import crypto from "node:crypto";
+import { eq } from "drizzle-orm";
+import { db } from "../config/database";
 import { ErrorCode, ErrorMessages } from "../constants/errorCodes";
+import { resetCodes, users } from "../db/schema";
 import type { User } from "../types/user";
 import { safeStringCompare } from "../utils/crypto";
 
@@ -12,17 +15,6 @@ class ServiceError extends Error {
     super(message || ErrorMessages[errorCode]);
     this.name = "ServiceError";
   }
-}
-
-// In-memory storage for users and reset codes
-const users = new Map<string, User & { password: string }>();
-const resetCodes = new Map<string, { code: string; expiresAt: Date }>();
-
-/**
- * Generate a unique user ID
- */
-function generateUserId(): string {
-  return crypto.randomUUID();
 }
 
 /**
@@ -44,37 +36,38 @@ function hashPassword(password: string): string {
 /**
  * Create a new user
  */
-export function createUser(email: string, password: string): User {
-  // Check if user already exists using some
-  const userExists = Array.from(users.values()).some((user) => user.email === email);
-  if (userExists) {
+export async function createUser(email: string, password: string): Promise<User> {
+  // Check if user already exists
+  const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (existingUser.length > 0) {
     throw new ServiceError(ErrorCode.USER_ALREADY_EXISTS);
   }
 
-  const userId = generateUserId();
-  const now = new Date().toISOString();
   const hashedPassword = hashPassword(password);
 
-  const user: User & { password: string } = {
-    userId,
-    email,
-    password: hashedPassword,
-    createdAt: now,
-    updatedAt: now,
-  };
+  const [newUser] = await db
+    .insert(users)
+    .values({
+      email,
+      password: hashedPassword,
+    })
+    .returning();
 
-  users.set(userId, user);
+  if (!newUser) {
+    throw new ServiceError(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create user");
+  }
 
   // Return user without password
-  const { password: _, ...userWithoutPassword } = user;
+  const { password: _, ...userWithoutPassword } = newUser;
   return userWithoutPassword;
 }
 
 /**
  * Get user by ID
  */
-export function getUserById(userId: string): User | null {
-  const user = users.get(userId);
+export async function getUserById(userId: string): Promise<User | null> {
+  const [user] = await db.select().from(users).where(eq(users.userId, userId)).limit(1);
+
   if (!user) {
     return null;
   }
@@ -86,25 +79,25 @@ export function getUserById(userId: string): User | null {
 /**
  * Get user by email
  */
-export function getUserByEmail(email: string): User | null {
-  const matchedUser = Array.from(users.values()).find((user) => user.email === email);
+export async function getUserByEmail(email: string): Promise<User | null> {
+  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
-  if (!matchedUser) {
+  if (!user) {
     return null;
   }
 
-  const { password: _, ...userWithoutPassword } = matchedUser;
+  const { password: _, ...userWithoutPassword } = user;
   return userWithoutPassword;
 }
 
 /**
  * Verify user credentials and return user if valid
  */
-export function loginUser(email: string, password: string): User {
+export async function loginUser(email: string, password: string): Promise<User> {
   const hashedPassword = hashPassword(password);
 
-  // Find user by email using find
-  const matchedUser = Array.from(users.values()).find((user) => user.email === email);
+  // Find user by email
+  const [matchedUser] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
   if (!matchedUser) {
     // User not found - throw error
@@ -124,9 +117,9 @@ export function loginUser(email: string, password: string): User {
 /**
  * Send reset password code
  */
-export function sendResetCode(email: string): { code: string; expiresAt: Date } {
+export async function sendResetCode(email: string): Promise<{ code: string; expiresAt: Date }> {
   // Check if user exists
-  const user = getUserByEmail(email);
+  const user = await getUserByEmail(email);
   if (!user) {
     throw new ServiceError(ErrorCode.USER_NOT_FOUND);
   }
@@ -135,7 +128,15 @@ export function sendResetCode(email: string): { code: string; expiresAt: Date } 
   const expiresAt = new Date();
   expiresAt.setMinutes(expiresAt.getMinutes() + 15); // Code expires in 15 minutes
 
-  resetCodes.set(email, { code, expiresAt });
+  // Delete any existing reset code for this email
+  await db.delete(resetCodes).where(eq(resetCodes.email, email));
+
+  // Insert new reset code
+  await db.insert(resetCodes).values({
+    email,
+    code,
+    expiresAt: expiresAt.toISOString(),
+  });
 
   // In production, this would send an email
   // WARNING: Logging reset codes is a security vulnerability. Remove in production.
@@ -147,15 +148,24 @@ export function sendResetCode(email: string): { code: string; expiresAt: Date } 
 /**
  * Reset password using code
  */
-export function resetPassword(email: string, code: string, newPassword: string): void {
+export async function resetPassword(
+  email: string,
+  code: string,
+  newPassword: string,
+): Promise<void> {
   // Check if user exists
-  const user = getUserByEmail(email);
+  const user = await getUserByEmail(email);
   if (!user) {
     throw new ServiceError(ErrorCode.USER_NOT_FOUND);
   }
 
   // Check if reset code exists
-  const resetData = resetCodes.get(email);
+  const [resetData] = await db
+    .select()
+    .from(resetCodes)
+    .where(eq(resetCodes.email, email))
+    .limit(1);
+
   if (!resetData) {
     throw new ServiceError(ErrorCode.RESET_CODE_NOT_FOUND);
   }
@@ -166,69 +176,91 @@ export function resetPassword(email: string, code: string, newPassword: string):
   }
 
   // Check if code has expired
-  if (new Date() > resetData.expiresAt) {
-    resetCodes.delete(email);
+  if (new Date() > new Date(resetData.expiresAt)) {
+    await db.delete(resetCodes).where(eq(resetCodes.email, email));
     throw new ServiceError(ErrorCode.RESET_CODE_EXPIRED);
   }
 
-  // Find user in storage and update password using find
-  const userEntry = Array.from(users.entries()).find(([_, u]) => u.email === email);
-
-  if (userEntry) {
-    const [userId, storedUser] = userEntry;
-    storedUser.password = hashPassword(newPassword);
-    storedUser.updatedAt = new Date().toISOString();
-    users.set(userId, storedUser);
-  }
+  // Update user password
+  await db
+    .update(users)
+    .set({
+      password: hashPassword(newPassword),
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(users.email, email));
 
   // Delete used reset code
-  resetCodes.delete(email);
+  await db.delete(resetCodes).where(eq(resetCodes.email, email));
 }
 
 /**
  * Delete user by ID
  */
-export function deleteUser(userId: string): void {
-  const user = users.get(userId);
+export async function deleteUser(userId: string): Promise<void> {
+  const [user] = await db.select().from(users).where(eq(users.userId, userId)).limit(1);
+
   if (!user) {
     throw new ServiceError(ErrorCode.USER_NOT_FOUND);
   }
 
-  users.delete(userId);
+  // Delete user
+  await db.delete(users).where(eq(users.userId, userId));
+
   // Also delete any reset codes for this user
-  resetCodes.delete(user.email);
+  await db.delete(resetCodes).where(eq(resetCodes.email, user.email));
 }
 
 /**
  * Update user data
  */
-export function updateUser(userId: string, updates: { email?: string; password?: string }): User {
-  const user = users.get(userId);
+export async function updateUser(
+  userId: string,
+  updates: { email?: string; password?: string },
+): Promise<User> {
+  const [user] = await db.select().from(users).where(eq(users.userId, userId)).limit(1);
+
   if (!user) {
     throw new ServiceError(ErrorCode.USER_NOT_FOUND);
   }
 
-  // If updating email, check if new email is already in use using some
+  // If updating email, check if new email is already in use
   if (updates.email && updates.email !== user.email) {
-    const emailInUse = Array.from(users.values()).some(
-      (existingUser) => existingUser.email === updates.email,
-    );
+    const [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, updates.email))
+      .limit(1);
 
-    if (emailInUse) {
+    if (existingUser) {
       throw new ServiceError(ErrorCode.EMAIL_ALREADY_IN_USE);
     }
-
-    user.email = updates.email;
   }
 
-  // If updating password, hash it
+  // Prepare update data
+  const updateData: { email?: string; password?: string; updatedAt: string } = {
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (updates.email) {
+    updateData.email = updates.email;
+  }
+
   if (updates.password) {
-    user.password = hashPassword(updates.password);
+    updateData.password = hashPassword(updates.password);
   }
 
-  user.updatedAt = new Date().toISOString();
-  users.set(userId, user);
+  // Update user
+  const [updatedUser] = await db
+    .update(users)
+    .set(updateData)
+    .where(eq(users.userId, userId))
+    .returning();
 
-  const { password: _, ...userWithoutPassword } = user;
+  if (!updatedUser) {
+    throw new ServiceError(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to update user");
+  }
+
+  const { password: _, ...userWithoutPassword } = updatedUser;
   return userWithoutPassword;
 }

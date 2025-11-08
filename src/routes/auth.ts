@@ -22,7 +22,7 @@ router.post(
     const { email, password } = validateRequest(CreateUserSchema, req.body);
 
     try {
-      const user = userService.createUser(email, password);
+      const user = await userService.createUser(email, password);
 
       const response: ApiResponse = {
         success: true,
@@ -44,7 +44,7 @@ router.post(
     const { email, password } = validateRequest(LoginSchema, req.body);
 
     try {
-      const user = userService.loginUser(email, password);
+      const user = await userService.loginUser(email, password);
 
       const response: ApiResponse = {
         success: true,
@@ -66,7 +66,7 @@ router.post(
     const { email } = validateRequest(SendResetCodeSchema, req.body);
 
     try {
-      const { expiresAt } = userService.sendResetCode(email);
+      const { expiresAt } = await userService.sendResetCode(email);
 
       const response: ApiResponse = {
         success: true,
@@ -90,7 +90,7 @@ router.post(
     const { email, code, newPassword } = validateRequest(ResetPasswordSchema, req.body);
 
     try {
-      userService.resetPassword(email, code, newPassword);
+      await userService.resetPassword(email, code, newPassword);
 
       const response: ApiResponse = {
         success: true,
@@ -116,7 +116,7 @@ router.post(
     const { email } = validateRequest(ForgotPasswordSchema, req.body);
 
     try {
-      const { expiresAt } = userService.sendResetCode(email);
+      const { expiresAt } = await userService.sendResetCode(email);
 
       const response: ApiResponse = {
         success: true,
