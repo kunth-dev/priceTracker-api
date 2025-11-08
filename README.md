@@ -15,13 +15,84 @@ Backend API for crypto trading application with user management and authenticati
 
 ## Getting Started
 
-### Prerequisites
+### Quick Start with Docker (Recommended)
+
+The easiest way to get started is using Docker Compose, which will set up both the backend API and PostgreSQL database automatically.
+
+#### Prerequisites
+- Docker >= 20.10.0
+- Docker Compose >= 2.0.0
+
+#### Running with Docker
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd backend-api
+   ```
+
+2. **Set up environment variables (optional)**
+   ```bash
+   cp .env.example .env
+   # Edit .env file to customize BEARER_TOKENS if needed
+   ```
+
+3. **Start all services**
+   ```bash
+   docker compose up -d
+   ```
+
+4. **Push database schema**
+   ```bash
+   docker compose exec backend npm run db:push
+   ```
+
+5. **Access the application**
+   - API: http://localhost:3002/api
+   - PostgreSQL: localhost:5432 (credentials: postgres/postgres)
+
+#### Docker Commands
+
+```bash
+# Start services
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# View backend logs only
+docker compose logs -f backend
+
+# Stop services
+docker compose down
+
+# Stop services and remove volumes (deletes database data)
+docker compose down -v
+
+# Rebuild after code changes
+docker compose up -d --build
+
+# Run database migrations
+docker compose exec backend npm run db:push
+
+# Access database shell
+docker compose exec postgres psql -U postgres -d crypton_db
+
+# Access backend shell
+docker compose exec backend sh
+```
+
+### Manual Installation
+
+If you prefer to run the application without Docker:
+
+#### Prerequisites
 
 - Node.js >= 18.0.0
 - npm or yarn
 - PostgreSQL >= 12.0 (see [Database Setup Guide](./docs/DATABASE.md))
 
-### Installation
+#### Installation
 
 ```bash
 npm install

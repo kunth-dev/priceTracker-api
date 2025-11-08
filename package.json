@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/server.js",
+    "build": "tsc",
     "dev": "tsx watch src/server.ts",
     "dev:production": "NODE_ENV=production tsx watch --env-file=.env.production src/server.ts",
     "lint": "biome check src/",
