@@ -39,6 +39,7 @@ export function handleServiceError(error: unknown): never {
       [ErrorCode.RESET_CODE_NOT_FOUND]: 404,
       [ErrorCode.INVALID_RESET_CODE]: 400,
       [ErrorCode.RESET_CODE_EXPIRED]: 400,
+      [ErrorCode.ORDER_NOT_FOUND]: 404,
       [ErrorCode.INTERNAL_SERVER_ERROR]: 500,
       [ErrorCode.RESOURCE_NOT_FOUND]: 404,
     };

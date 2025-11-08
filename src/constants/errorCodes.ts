@@ -24,7 +24,10 @@ export enum ErrorCode {
   INVALID_RESET_CODE = "INVALID_RESET_CODE",
   RESET_CODE_EXPIRED = "RESET_CODE_EXPIRED",
 
-  // Generic errors (5xxx)
+  // Order errors (5xxx)
+  ORDER_NOT_FOUND = "ORDER_NOT_FOUND",
+
+  // Generic errors (6xxx)
   INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR",
   RESOURCE_NOT_FOUND = "RESOURCE_NOT_FOUND",
 }
@@ -49,6 +52,8 @@ export const ErrorMessages: Record<ErrorCode, string> = {
   [ErrorCode.RESET_CODE_NOT_FOUND]: "No reset code found for this email",
   [ErrorCode.INVALID_RESET_CODE]: "Invalid reset code",
   [ErrorCode.RESET_CODE_EXPIRED]: "Reset code has expired",
+
+  [ErrorCode.ORDER_NOT_FOUND]: "Order not found",
 
   [ErrorCode.INTERNAL_SERVER_ERROR]: "Internal server error",
   [ErrorCode.RESOURCE_NOT_FOUND]: "Resource not found",

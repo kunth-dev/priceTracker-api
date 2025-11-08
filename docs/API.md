@@ -387,6 +387,208 @@ Authorization: Bearer your_secret_bearer_token_here
 
 ---
 
+## Order Endpoints (Protected - Authentication Required)
+
+All endpoints in this section require a valid Bearer token in the Authorization header.
+
+### Create Order
+
+Create a new order.
+
+**Endpoint:** `POST /api/order`
+
+**Headers:**
+```
+Authorization: Bearer your_secret_bearer_token_here
+```
+
+**Request Body:**
+```json
+{
+  "title": "Premium Subscription",
+  "price": "99.99",
+  "link": "https://example.com/product/123",
+  "status": "active"
+}
+```
+
+**Validation Rules:**
+- `title`: Required, minimum 1 character
+- `price`: Required, valid number with up to 2 decimal places (e.g., "99.99")
+- `link`: Required, valid URL format
+- `status`: Required, must be either "active" or "draft"
+
+**Success Response (201 Created):**
+```json
+{
+  "success": true,
+  "data": {
+    "orderId": "a1b2c3d4-5e6f-7g8h-9i0j-k1l2m3n4o5p6",
+    "title": "Premium Subscription",
+    "price": "99.99",
+    "link": "https://example.com/product/123",
+    "status": "active",
+    "createdAt": "2025-11-08T05:20:12.123Z",
+    "updatedAt": "2025-11-08T05:20:12.123Z"
+  },
+  "message": "Order created successfully"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "error": "Price must be a valid number with up to 2 decimal places",
+  "errorCode": "VALIDATION_FAILED"
+}
+```
+
+---
+
+### Get Order by ID
+
+Retrieve order information by order ID.
+
+**Endpoint:** `GET /api/order/:orderId`
+
+**Headers:**
+```
+Authorization: Bearer your_secret_bearer_token_here
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "orderId": "a1b2c3d4-5e6f-7g8h-9i0j-k1l2m3n4o5p6",
+    "title": "Premium Subscription",
+    "price": "99.99",
+    "link": "https://example.com/product/123",
+    "status": "active",
+    "createdAt": "2025-11-08T05:20:12.123Z",
+    "updatedAt": "2025-11-08T05:20:12.123Z"
+  }
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "error": "Order not found",
+  "errorCode": "ORDER_NOT_FOUND"
+}
+```
+
+**Error Response (401 Unauthorized):**
+```json
+{
+  "success": false,
+  "error": "Missing authorization",
+  "message": "Authorization header is required. Format: Authorization: Bearer <token>",
+  "timestamp": "2025-11-08T05:24:00.000Z"
+}
+```
+
+---
+
+### Update Order
+
+Update order information (title, price, link, and/or status).
+
+**Endpoint:** `PATCH /api/order/:orderId`
+
+**Headers:**
+```
+Authorization: Bearer your_secret_bearer_token_here
+```
+
+**Request Body:**
+```json
+{
+  "title": "Updated Premium Subscription",
+  "price": "149.99",
+  "link": "https://example.com/product/456",
+  "status": "draft"
+}
+```
+
+**Validation Rules:**
+- `title`: Minimum 1 character (optional)
+- `price`: Valid number with up to 2 decimal places (optional)
+- `link`: Valid URL format (optional)
+- `status`: Must be either "active" or "draft" (optional)
+- At least one field must be provided
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "orderId": "a1b2c3d4-5e6f-7g8h-9i0j-k1l2m3n4o5p6",
+    "title": "Updated Premium Subscription",
+    "price": "149.99",
+    "link": "https://example.com/product/456",
+    "status": "draft",
+    "createdAt": "2025-11-08T05:20:12.123Z",
+    "updatedAt": "2025-11-08T05:30:45.678Z"
+  },
+  "message": "Order updated successfully"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "error": "Order not found",
+  "errorCode": "ORDER_NOT_FOUND"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "error": "At least one field must be provided for update",
+  "errorCode": "MISSING_REQUIRED_FIELD"
+}
+```
+
+---
+
+### Delete Order
+
+Delete an order by ID.
+
+**Endpoint:** `DELETE /api/order/:orderId`
+
+**Headers:**
+```
+Authorization: Bearer your_secret_bearer_token_here
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Order deleted successfully"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "error": "Order not found",
+  "errorCode": "ORDER_NOT_FOUND"
+}
+```
+
+---
+
 ## Error Handling
 
 All endpoints follow a consistent error response format:
@@ -423,6 +625,7 @@ All errors include a machine-readable error code for programmatic handling:
 - `INVALID_RESET_CODE` - Invalid password reset code
 - `RESET_CODE_EXPIRED` - Reset code has expired
 - `RESET_CODE_NOT_FOUND` - No reset code found for email
+- `ORDER_NOT_FOUND` - Order does not exist
 - `MISSING_REQUIRED_FIELD` - Required field missing
 
 ---
@@ -454,5 +657,25 @@ curl -X PATCH http://localhost:3002/api/user/USER_ID_HERE \
 
 # Delete user (requires auth)
 curl -X DELETE http://localhost:3002/api/user/USER_ID_HERE \
+  -H "Authorization: Bearer your_secret_bearer_token_here"
+
+# Create order (requires auth)
+curl -X POST http://localhost:3002/api/order \
+  -H "Authorization: Bearer your_secret_bearer_token_here" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Premium Package","price":"99.99","link":"https://example.com/product","status":"active"}'
+
+# Get order data (requires auth)
+curl -X GET http://localhost:3002/api/order/ORDER_ID_HERE \
+  -H "Authorization: Bearer your_secret_bearer_token_here"
+
+# Update order (requires auth)
+curl -X PATCH http://localhost:3002/api/order/ORDER_ID_HERE \
+  -H "Authorization: Bearer your_secret_bearer_token_here" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"draft","price":"149.99"}'
+
+# Delete order (requires auth)
+curl -X DELETE http://localhost:3002/api/order/ORDER_ID_HERE \
   -H "Authorization: Bearer your_secret_bearer_token_here"
 ```
