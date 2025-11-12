@@ -29,6 +29,17 @@ Click on **"New repository secret"** for each of the following:
 - **Example**: `token1,token2,token3`
 - **Generate tokens**: `openssl rand -base64 32`
 
+### 5. POSTGRES_PASSWORD
+- **Name**: `POSTGRES_PASSWORD`
+- **Value**: Strong password for PostgreSQL database
+- **Example**: Generate with `openssl rand -base64 32`
+
+### 6. DRIZZLE_GATEWAY_MASTERPASS
+- **Name**: `DRIZZLE_GATEWAY_MASTERPASS`
+- **Value**: Master password for Drizzle Gateway web interface
+- **Example**: Generate with `openssl rand -base64 32`
+- **Description**: Secure password for accessing the Drizzle Gateway database management UI
+
 ## Setting Up Variables
 
 Navigate to: **Settings** → **Secrets and variables** → **Actions** → **Variables**
