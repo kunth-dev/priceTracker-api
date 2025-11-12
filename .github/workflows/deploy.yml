@@ -59,7 +59,6 @@ jobs:
             BEARER_TOKENS=${{ secrets.BEARER_TOKENS }}
             LOG_SECURITY_EVENTS=${{ vars.LOG_SECURITY_EVENTS || 'true' }}
             TRUST_PROXY=${{ vars.TRUST_PROXY || 'true' }}
-            DATABASE_URL=postgresql://postgres:postgres@postgres:5432/price_tracker_db
             EOF
       
       - name: Deploy with Docker Compose
