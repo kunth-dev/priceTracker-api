@@ -62,7 +62,7 @@ services:
       - ./src/db/schema.ts:/app/src/db/schema.ts
       - ./package.json:/app/package.json
       - ./tsconfig.json:/app/tsconfig.json
-    command: sh -c "npm install drizzle-kit drizzle-orm typescript tsx && npx drizzle-kit studio --host 0.0.0.0 --port 4983"
+    command: sh -c "npm install drizzle-kit drizzle-orm typescript tsx && npx drizzle-kit studio --port 4983 --verbose"
     depends_on:
       postgres:
         condition: service_healthy
