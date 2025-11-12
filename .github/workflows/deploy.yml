@@ -1,0 +1,105 @@
+name: Deploy to Remote Server
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy API to Remote Server
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+      
+      - name: Create deployment directory on remote server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_SSH_HOST }}
+          username: ${{ secrets.SERVER_SSH_LOGIN }}
+          password: ${{ secrets.SERVER_SSH_PASSWORD }}
+          script: |
+            mkdir -p /var/www/pricetracker-api
+            mkdir -p /var/www/pricetracker-api/logs
+      
+      - name: Copy files to remote server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_SSH_HOST }}
+          username: ${{ secrets.SERVER_SSH_LOGIN }}
+          password: ${{ secrets.SERVER_SSH_PASSWORD }}
+          source: "Dockerfile,docker-compose.production.yml,start.sh,package.json,package-lock.json,tsconfig.json,drizzle.config.ts,src,drizzle,nginx.conf"
+          target: /var/www/pricetracker-api
+          strip_components: 0
+          overwrite: true
+      
+      - name: Create .env file on remote server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_SSH_HOST }}
+          username: ${{ secrets.SERVER_SSH_LOGIN }}
+          password: ${{ secrets.SERVER_SSH_PASSWORD }}
+          script: |
+            cd /var/www/pricetracker-api
+            cat > .env << EOF
+            PORT=${{ vars.PORT || '3002' }}
+            NODE_ENV=${{ vars.NODE_ENV || 'production' }}
+            ALLOWED_DOMAINS=${{ vars.ALLOWED_DOMAINS }}
+            BEARER_TOKENS=${{ secrets.BEARER_TOKENS }}
+            LOG_SECURITY_EVENTS=${{ vars.LOG_SECURITY_EVENTS || 'true' }}
+            TRUST_PROXY=${{ vars.TRUST_PROXY || 'true' }}
+            DATABASE_URL=postgresql://postgres:postgres@postgres:5432/price_tracker_db
+            EOF
+      
+      - name: Deploy with Docker Compose
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_SSH_HOST }}
+          username: ${{ secrets.SERVER_SSH_LOGIN }}
+          password: ${{ secrets.SERVER_SSH_PASSWORD }}
+          script: |
+            cd /var/www/pricetracker-api
+            docker-compose -f docker-compose.production.yml down
+            docker-compose -f docker-compose.production.yml up -d --build
+            docker-compose -f docker-compose.production.yml ps
+      
+      - name: Configure Nginx
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_SSH_HOST }}
+          username: ${{ secrets.SERVER_SSH_LOGIN }}
+          password: ${{ secrets.SERVER_SSH_PASSWORD }}
+          script: |
+            # Copy nginx configuration
+            sudo cp /var/www/pricetracker-api/nginx.conf /etc/nginx/sites-available/api.khdev.ru
+            sudo ln -sf /etc/nginx/sites-available/api.khdev.ru /etc/nginx/sites-enabled/
+            
+            # Test nginx configuration
+            sudo nginx -t
+            
+            # Reload nginx
+            sudo systemctl reload nginx
+      
+      - name: Verify Deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_SSH_HOST }}
+          username: ${{ secrets.SERVER_SSH_LOGIN }}
+          password: ${{ secrets.SERVER_SSH_PASSWORD }}
+          script: |
+            cd /var/www/pricetracker-api
+            echo "Checking container status..."
+            docker-compose -f docker-compose.production.yml ps
+            
+            echo "Checking API health..."
+            docker-compose -f docker-compose.production.yml logs --tail=50 backend
+            
+            echo "Deployment completed!"

@@ -156,6 +156,12 @@ npm run db:migrate   # Run migrations
 npm run db:studio    # Open Drizzle Studio (database GUI)
 ```
 
+## Deployment
+
+For production deployment to a remote server, see the [Deployment Guide](./docs/DEPLOYMENT.md).
+
+The application can be deployed using GitHub Actions with automated Docker deployment via SSH to a remote server with nginx reverse proxy.
+
 ## API Documentation
 
 Complete API documentation is available in [docs/API.md](./docs/API.md).
