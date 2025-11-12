@@ -38,7 +38,7 @@ jobs:
           host: ${{ secrets.SERVER_SSH_HOST }}
           username: ${{ secrets.SERVER_SSH_LOGIN }}
           password: ${{ secrets.SERVER_SSH_PASSWORD }}
-          source: "Dockerfile,docker-compose.production.yml,start.sh,package.json,package-lock.json,tsconfig.json,drizzle.config.ts,src,drizzle,nginx.conf"
+          source: "Dockerfile,docker-compose.yml,start.sh,package.json,package-lock.json,tsconfig.json,drizzle.config.ts,src,drizzle"
           target: /var/www/pricetracker-api
           strip_components: 0
           overwrite: true
@@ -69,26 +69,9 @@ jobs:
           password: ${{ secrets.SERVER_SSH_PASSWORD }}
           script: |
             cd /var/www/pricetracker-api
-            docker-compose -f docker-compose.production.yml down
-            docker-compose -f docker-compose.production.yml up -d --build
-            docker-compose -f docker-compose.production.yml ps
-      
-      - name: Configure Nginx
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_SSH_HOST }}
-          username: ${{ secrets.SERVER_SSH_LOGIN }}
-          password: ${{ secrets.SERVER_SSH_PASSWORD }}
-          script: |
-            # Copy nginx configuration
-            sudo cp /var/www/pricetracker-api/nginx.conf /etc/nginx/sites-available/api.khdev.ru
-            sudo ln -sf /etc/nginx/sites-available/api.khdev.ru /etc/nginx/sites-enabled/
-            
-            # Test nginx configuration
-            sudo nginx -t
-            
-            # Reload nginx
-            sudo systemctl reload nginx
+            docker-compose down
+            docker-compose up -d --build
+            docker-compose ps
       
       - name: Verify Deployment
         uses: appleboy/ssh-action@v1.0.3
@@ -99,9 +82,9 @@ jobs:
           script: |
             cd /var/www/pricetracker-api
             echo "Checking container status..."
-            docker-compose -f docker-compose.production.yml ps
+            docker-compose ps
             
             echo "Checking API health..."
-            docker-compose -f docker-compose.production.yml logs --tail=50 backend
+            docker-compose logs --tail=50 backend
             
             echo "Deployment completed!"

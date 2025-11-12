@@ -50,9 +50,10 @@ The deployment workflow performs the following steps:
 2. **Create Directories**: Creates necessary directories on the remote server
 3. **Copy Files**: Transfers application files to `/var/www/pricetracker-api`
 4. **Create Environment File**: Generates `.env` file with configuration from GitHub secrets/variables
-5. **Deploy with Docker**: Builds and starts Docker containers using `docker-compose.production.yml`
-6. **Configure Nginx**: Sets up nginx reverse proxy for `api.khdev.ru` and `studio.khdev.ru`
-7. **Verify Deployment**: Checks container status and logs
+5. **Deploy with Docker**: Builds and starts Docker containers using `docker-compose.yml`
+6. **Verify Deployment**: Checks container status and logs
+
+> **Note**: Nginx configuration should be set up manually on the server to expose the API at `api.khdev.ru` and Drizzle Studio at `studio.khdev.ru`.
 
 ## Server Structure
 
@@ -62,8 +63,7 @@ After deployment, the following structure is created on the remote server:
 /var/www/pricetracker-api/
 ├── .env                          # Environment variables (generated)
 ├── Dockerfile                    # Docker build configuration
-├── docker-compose.production.yml # Production Docker Compose config
-├── nginx.conf                    # Nginx configuration
+├── docker-compose.yml            # Docker Compose config
 ├── start.sh                      # Container startup script
 ├── package.json                  # Node.js dependencies
 ├── tsconfig.json                 # TypeScript configuration
@@ -77,20 +77,20 @@ After deployment, the following structure is created on the remote server:
 
 The deployment creates three Docker containers:
 
-### 1. PostgreSQL Database (`price-tracker-postgres-prod`)
+### 1. PostgreSQL Database (`price-tracker-postgres`)
 - Internal database service
 - Data persisted in Docker volume `postgres_data`
-- Not exposed externally
+- Accessible on port 5432
 
-### 2. Backend API (`price-tracker-api-prod`)
+### 2. Backend API (`price-tracker-api`)
 - Runs the Price Tracker API
-- Accessible at `http://127.0.0.1:3002` internally
-- Public access via `https://api.khdev.ru` through nginx
+- Accessible at `http://localhost:3002` or `http://server-ip:3002`
+- Should be exposed via nginx reverse proxy at `https://api.khdev.ru`
 
-### 3. Drizzle Studio (`price-tracker-drizzle-studio-prod`)
+### 3. Drizzle Studio (`price-tracker-drizzle-studio`)
 - Database management UI
-- Accessible at `http://127.0.0.1:4983` internally
-- Public access via `https://studio.khdev.ru` through nginx
+- Accessible at `http://localhost:4983` or `http://server-ip:4983`
+- Should be exposed via nginx reverse proxy at `https://studio.khdev.ru`
 
 ## Domain Configuration
 
@@ -114,10 +114,10 @@ ssh user@khdev.ru
 
 # Check container status
 cd /var/www/pricetracker-api
-docker-compose -f docker-compose.production.yml ps
+docker-compose ps
 
 # View logs
-docker-compose -f docker-compose.production.yml logs -f backend
+docker-compose logs -f backend
 
 # Test API endpoint
 curl https://api.khdev.ru/api
@@ -128,28 +128,92 @@ curl https://studio.khdev.ru
 
 ## Nginx Configuration
 
-The nginx configuration file (`nginx.conf`) provides:
+Nginx must be configured manually on the server to expose the services. The nginx configuration should provide:
 
 1. **HTTP to HTTPS redirect** for both subdomains
-2. **Reverse proxy** to Docker containers
+2. **Reverse proxy** to Docker containers (ports 3002 and 4983)
 3. **SSL/TLS termination** with Let's Encrypt certificates
 4. **Security headers** (HSTS, X-Frame-Options, etc.)
 5. **WebSocket support** for Drizzle Studio
 6. **Access and error logging**
 
+### Example Nginx Configuration
+
+Create a configuration file at `/etc/nginx/sites-available/api.khdev.ru`:
+
+```nginx
+# Redirect HTTP to HTTPS for API
+server {
+    listen 80;
+    listen [::]:80;
+    server_name api.khdev.ru;
+    
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+    
+    location / {
+        return 301 https://$server_name$request_uri;
+    }
+}
+
+# HTTPS server for API
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name api.khdev.ru;
+
+    ssl_certificate /etc/letsencrypt/live/khdev.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/khdev.ru/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# HTTPS server for Drizzle Studio
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name studio.khdev.ru;
+
+    ssl_certificate /etc/letsencrypt/live/khdev.ru/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/khdev.ru/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:4983;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+```
+
 ### Nginx Setup on Server
 
-If nginx is not yet configured for the subdomains:
+To configure nginx manually:
 
 ```bash
-# The deployment workflow automatically:
-# 1. Copies nginx.conf to /etc/nginx/sites-available/api.khdev.ru
-# 2. Creates symlink in /etc/nginx/sites-enabled/
-# 3. Tests and reloads nginx
+# Create the nginx configuration file
+sudo nano /etc/nginx/sites-available/api.khdev.ru
 
-# Manual verification:
+# Enable the site
+sudo ln -s /etc/nginx/sites-available/api.khdev.ru /etc/nginx/sites-enabled/
+
+# Test nginx configuration
 sudo nginx -t
-sudo systemctl status nginx
+
+# Reload nginx
+sudo systemctl reload nginx
 ```
 
 ## SSL Certificates
@@ -178,19 +242,19 @@ sudo certbot renew --dry-run
 ### Check Container Logs
 ```bash
 cd /var/www/pricetracker-api
-docker-compose -f docker-compose.production.yml logs -f
+docker-compose logs -f
 ```
 
 ### Restart Services
 ```bash
 cd /var/www/pricetracker-api
-docker-compose -f docker-compose.production.yml restart
+docker-compose restart
 ```
 
 ### Rebuild Containers
 ```bash
 cd /var/www/pricetracker-api
-docker-compose -f docker-compose.production.yml up -d --build
+docker-compose up -d --build
 ```
 
 ### Check Nginx Status
@@ -203,10 +267,10 @@ sudo tail -f /var/log/nginx/api.khdev.ru.error.log
 ### Database Issues
 ```bash
 # Access database shell
-docker-compose -f docker-compose.production.yml exec postgres psql -U postgres -d price_tracker_db
+docker-compose exec postgres psql -U postgres -d price_tracker_db
 
 # Check database migrations
-docker-compose -f docker-compose.production.yml exec backend npx drizzle-kit push
+docker-compose exec backend npx drizzle-kit push
 ```
 
 ## Security Considerations
@@ -227,7 +291,7 @@ To rollback to a previous version:
    ```bash
    cd /var/www/pricetracker-api
    git checkout <previous-commit>
-   docker-compose -f docker-compose.production.yml up -d --build
+   docker-compose up -d --build
    ```
 
 ## Monitoring
@@ -239,10 +303,10 @@ Monitor your deployment with:
 docker stats
 
 # Container health status
-docker-compose -f docker-compose.production.yml ps
+docker-compose ps
 
 # Application logs
-docker-compose -f docker-compose.production.yml logs -f backend
+docker-compose logs -f backend
 
 # Nginx access logs
 sudo tail -f /var/log/nginx/api.khdev.ru.access.log

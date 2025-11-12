@@ -130,7 +130,7 @@ curl https://studio.khdev.ru
 ```bash
 ssh user@khdev.ru
 cd /var/www/pricetracker-api
-docker-compose -f docker-compose.production.yml ps
+docker-compose ps
 ```
 
 ## Troubleshooting

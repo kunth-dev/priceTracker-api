@@ -12,6 +12,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pricetracker-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -34,12 +36,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - pricetracker-network
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/api', (r) => {process.exit(r.statusCode === 404 || r.statusCode === 401 ? 0 : 1)})"]
       interval: 30s
       timeout: 3s
       start_period: 10s
       retries: 3
+    volumes:
+      - ./logs:/app/logs
 
   # Drizzle Studio - Database Management UI
   drizzle-studio:
@@ -58,7 +64,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - pricetracker-network
 
 volumes:
   postgres_data:
     driver: local
+
+networks:
+  pricetracker-network:
+    driver: bridge
