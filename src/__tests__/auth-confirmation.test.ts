@@ -1,8 +1,8 @@
-import request from "supertest";
 import { eq } from "drizzle-orm";
+import request from "supertest";
+import app from "../app";
 import { db } from "../config/database";
 import { confirmationTokens, users } from "../db/schema";
-import app from "../app";
 
 describe("Auth Confirmation Endpoints", () => {
   const testEmail = "test-confirmation@example.com";
