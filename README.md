@@ -5,6 +5,7 @@ Backend API for crypto trading application with user management and authenticati
 ## Features
 
 - User registration and authentication
+- Email verification with OTP codes
 - Password reset flow with email verification codes
 - User profile management
 - Bearer token authentication for protected endpoints
@@ -12,6 +13,7 @@ Backend API for crypto trading application with user management and authenticati
 - Error handling with detailed error messages
 - Machine-readable error codes
 - PostgreSQL database with DrizzleORM
+- Email sending via SMTP (nodemailer)
 
 ## Getting Started
 
@@ -124,6 +126,15 @@ Required environment variables:
 - `DATABASE_URL` - PostgreSQL connection string (see [Database Setup Guide](./docs/DATABASE.md))
 - `DRIZZLE_GATEWAY_MASTERPASS` - Master password for Drizzle Gateway (default: changeme_secure_password)
 
+Optional SMTP configuration (for email sending):
+- `SMPT_HOST` - SMTP server hostname (e.g., smtp.gmail.com)
+- `SMPT_PORT` - SMTP server port (e.g., 587 for TLS, 465 for SSL)
+- `SMPT_SERVICE` - SMTP service name (e.g., gmail, outlook, yahoo)
+- `SMPT_MAIL` - Email address to send from
+- `SMPT_APP_PASS` - Application-specific password for SMTP authentication
+
+> **Note:** If SMTP is not configured, verification codes and password reset codes will be logged to the console instead of being sent via email.
+
 ### Database Setup
 
 See the comprehensive [Database Setup Guide](./docs/DATABASE.md) for:
@@ -182,7 +193,8 @@ Complete API documentation is available in [docs/API.md](./docs/API.md).
 
 - **Password Hashing:** Uses SHA-256 (NOT secure for production)
 - **Storage:** PostgreSQL database with DrizzleORM
-- **Reset Codes:** Logged to console (not sent via email)
+- **Email Sending:** Integrated with nodemailer (requires SMTP configuration)
+- **Reset Codes:** Sent via email when SMTP is configured, otherwise logged to console
 
 ### Production Requirements
 
@@ -190,7 +202,7 @@ Before deploying to production, implement:
 
 1. **Password Hashing:** Replace SHA-256 with bcrypt, scrypt, or Argon2
 2. **Database Security:** Enable SSL/TLS for database connections
-3. **Email Service:** Integrate email service (SendGrid, AWS SES, etc.) for reset codes
+3. **Email Service:** Configure SMTP settings (already integrated via nodemailer)
 4. **Rate Limiting:** Add rate limiting to prevent brute force attacks
 5. **HTTPS:** Ensure all traffic uses HTTPS
 6. **Token Management:** Implement JWT or session-based authentication
@@ -217,10 +229,12 @@ src/
 │   ├── public.ts    # Public routes aggregator
 │   └── private.ts   # Protected routes aggregator
 ├── services/        # Business logic
-│   └── userService.ts
+│   ├── userService.ts   # User management service
+│   └── emailService.ts  # Email sending service (nodemailer)
 ├── types/           # TypeScript type definitions
 │   ├── api.ts
-│   └── user.ts
+│   ├── user.ts
+│   └── email.ts     # Email service interface
 ├── utils/           # Helper utilities
 │   ├── validation.ts
 │   └── errorHandler.ts

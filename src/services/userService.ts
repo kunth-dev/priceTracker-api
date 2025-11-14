@@ -5,7 +5,7 @@ import { ErrorCode, ErrorMessages } from "../constants/errorCodes";
 import { resetCodes, users, verificationCodes } from "../db/schema";
 import type { User } from "../types/user";
 import { safeStringCompare } from "../utils/crypto";
-import * as emailService from "./emailService";
+import { emailService } from "./emailService";
 
 // Custom error class that includes error code
 class ServiceError extends Error {
