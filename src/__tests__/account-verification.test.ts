@@ -187,11 +187,7 @@ describe("Account Verification Requirements", () => {
         .expect(201);
 
       // Verify user is not verified initially
-      const [userBefore] = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, testEmail))
-        .limit(1);
+      const [userBefore] = await db.select().from(users).where(eq(users.email, testEmail)).limit(1);
       expect(userBefore.verified).toBe(false);
 
       // Get the confirmation token
@@ -210,11 +206,7 @@ describe("Account Verification Requirements", () => {
         .expect(200);
 
       // Verify user is now verified
-      const [userAfter] = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, testEmail))
-        .limit(1);
+      const [userAfter] = await db.select().from(users).where(eq(users.email, testEmail)).limit(1);
       expect(userAfter.verified).toBe(true);
     });
   });
