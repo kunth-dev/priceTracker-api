@@ -47,6 +47,14 @@ export const ResendVerificationCodeSchema = z.object({
   email: z.string().email("Invalid email address"),
 });
 
+export const ConfirmAccountSchema = z.object({
+  uuid: z.string().uuid("Invalid UUID format"),
+});
+
+export const ResendConfirmationEmailSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
 // Type inference from schemas
 export type CreateUserRequest = z.infer<typeof CreateUserSchema>;
 export type EmailOnlyRequest = z.infer<typeof EmailOnlySchema>;
@@ -55,6 +63,8 @@ export type UpdateUserRequest = z.infer<typeof UpdateUserSchema>;
 export type LoginRequest = z.infer<typeof LoginSchema>;
 export type VerifyEmailRequest = z.infer<typeof VerifyEmailSchema>;
 export type ResendVerificationCodeRequest = z.infer<typeof ResendVerificationCodeSchema>;
+export type ConfirmAccountRequest = z.infer<typeof ConfirmAccountSchema>;
+export type ResendConfirmationEmailRequest = z.infer<typeof ResendConfirmationEmailSchema>;
 
 // Deprecated: Use EmailOnlySchema instead
 /** @deprecated Use EmailOnlySchema for both send-reset-code and forgot-password endpoints */

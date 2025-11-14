@@ -44,6 +44,8 @@ export function handleServiceError(error: unknown): never {
       [ErrorCode.VERIFICATION_CODE_EXPIRED]: 401,
       [ErrorCode.EMAIL_ALREADY_VERIFIED]: 400,
       [ErrorCode.INVALID_CODE_FORMAT]: 400,
+      [ErrorCode.CONFIRMATION_TOKEN_NOT_FOUND]: 404,
+      [ErrorCode.INVALID_CONFIRMATION_TOKEN]: 400,
       [ErrorCode.ORDER_NOT_FOUND]: 404,
       [ErrorCode.INTERNAL_SERVER_ERROR]: 500,
       [ErrorCode.RESOURCE_NOT_FOUND]: 404,

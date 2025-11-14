@@ -20,6 +20,12 @@ export const verificationCodes = pgTable("verification_codes", {
   expiresAt: timestamp("expires_at", { mode: "string" }).notNull(),
 });
 
+export const confirmationTokens = pgTable("confirmation_tokens", {
+  email: text("email").primaryKey(),
+  token: uuid("token").notNull().unique(),
+  createdAt: timestamp("created_at", { mode: "string" }).notNull().defaultNow(),
+});
+
 export const orders = pgTable("orders", {
   orderId: uuid("order_id").primaryKey().defaultRandom(),
   title: text("title").notNull(),

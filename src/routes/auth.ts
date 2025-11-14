@@ -4,9 +4,11 @@ import { asyncHandler } from "../middleware/errorHandler";
 import * as userService from "../services/userService";
 import type { ApiResponse } from "../types/api";
 import {
+  ConfirmAccountSchema,
   CreateUserSchema,
   ForgotPasswordSchema,
   LoginSchema,
+  ResendConfirmationEmailSchema,
   ResendVerificationCodeSchema,
   ResetPasswordSchema,
   SendResetCodeSchema,
@@ -174,6 +176,50 @@ router.post(
       const response: ApiResponse = {
         success: true,
         message: "Verification code sent successfully",
+      };
+
+      res.status(200).json(response);
+    } catch (error) {
+      handleServiceError(error);
+    }
+  }),
+);
+
+// Confirm account by UUID token (POST /api/auth/register-confirmation)
+router.post(
+  "/register-confirmation",
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { uuid } = validateRequest(ConfirmAccountSchema, req.body);
+
+    try {
+      await userService.confirmAccountByToken(uuid);
+
+      const response: ApiResponse = {
+        success: true,
+        message: "Account confirmed successfully",
+      };
+
+      res.status(200).json(response);
+    } catch (error) {
+      handleServiceError(error);
+    }
+  }),
+);
+
+// Resend confirmation email (POST /api/auth/resend-confirmation-email)
+// NOTE: Rate limiting should be implemented in production (e.g., max 3 requests per hour per email)
+// to prevent abuse of email sending
+router.post(
+  "/resend-confirmation-email",
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const { email } = validateRequest(ResendConfirmationEmailSchema, req.body);
+
+    try {
+      await userService.resendConfirmationEmail(email);
+
+      const response: ApiResponse = {
+        success: true,
+        message: "Confirmation email sent successfully",
       };
 
       res.status(200).json(response);

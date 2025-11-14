@@ -30,6 +30,8 @@ export enum ErrorCode {
   VERIFICATION_CODE_EXPIRED = "VERIFICATION_CODE_EXPIRED",
   EMAIL_ALREADY_VERIFIED = "EMAIL_ALREADY_VERIFIED",
   INVALID_CODE_FORMAT = "INVALID_CODE_FORMAT",
+  CONFIRMATION_TOKEN_NOT_FOUND = "CONFIRMATION_TOKEN_NOT_FOUND",
+  INVALID_CONFIRMATION_TOKEN = "INVALID_CONFIRMATION_TOKEN",
 
   // Order errors (5xxx)
   ORDER_NOT_FOUND = "ORDER_NOT_FOUND",
@@ -65,6 +67,8 @@ export const ErrorMessages: Record<ErrorCode, string> = {
   [ErrorCode.VERIFICATION_CODE_EXPIRED]: "Verification code has expired",
   [ErrorCode.EMAIL_ALREADY_VERIFIED]: "Email is already verified",
   [ErrorCode.INVALID_CODE_FORMAT]: "Invalid code format",
+  [ErrorCode.CONFIRMATION_TOKEN_NOT_FOUND]: "No confirmation token found",
+  [ErrorCode.INVALID_CONFIRMATION_TOKEN]: "Invalid confirmation token",
 
   [ErrorCode.ORDER_NOT_FOUND]: "Order not found",
 

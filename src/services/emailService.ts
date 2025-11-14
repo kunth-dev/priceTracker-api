@@ -134,6 +134,52 @@ class EmailService implements IEmailService {
       throw new Error("Failed to send password reset email");
     }
   }
+
+  /**
+   * Send confirmation email with link
+   */
+  public async sendConfirmationEmail(email: string, token: string): Promise<void> {
+    if (!this.transporter) {
+      // Fallback to console log when SMTP is not configured
+      logger.warn(`Email sending is disabled. Confirmation token for ${email}: ${token}`);
+      console.log(
+        `Confirmation link for ${email}: https://khdev.ru/register/confirmation?uuid=${token}`,
+      );
+      return;
+    }
+
+    try {
+      const confirmationLink = `https://khdev.ru/register/confirmation?uuid=${token}`;
+      const mailOptions = {
+        from: `"Price Tracker" <${env.SMPT_MAIL}>`,
+        to: email,
+        subject: "Confirm Your Email Address",
+        text: `Please confirm your email address by clicking the link below:\n\n${confirmationLink}\n\nThis link can only be used once.\n\nIf you did not create an account, please ignore this email.`,
+        html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Confirm Your Email Address</h2>
+          <p>Thank you for registering! Please confirm your email address by clicking the button below:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${confirmationLink}" style="background-color: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Confirm Email</a>
+          </div>
+          <p style="color: #666; font-size: 14px;">Or copy and paste this link into your browser:</p>
+          <p style="color: #4CAF50; word-break: break-all;">${confirmationLink}</p>
+          <p style="color: #666; font-size: 12px; margin-top: 30px;">This link can only be used once. If you did not create an account, please ignore this email.</p>
+        </div>
+      `,
+      };
+
+      await this.transporter.sendMail(mailOptions);
+      logger.info(`Confirmation email sent to ${email}`);
+    } catch (error) {
+      logger.error(`Failed to send confirmation email to ${email}`, { error });
+      // Fallback to console log on error
+      console.log(
+        `Confirmation link for ${email}: https://khdev.ru/register/confirmation?uuid=${token}`,
+      );
+      throw new Error("Failed to send confirmation email");
+    }
+  }
 }
 
 // Export singleton instance

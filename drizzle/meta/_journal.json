@@ -15,6 +15,13 @@
       "when": 1763099878460,
       "tag": "0001_foamy_robbie_robertson",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1763110483057,
+      "tag": "0002_amusing_kinsey_walden",
+      "breakpoints": true
     }
   ]
 }

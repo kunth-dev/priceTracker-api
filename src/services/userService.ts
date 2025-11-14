@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "../config/database";
 import { ErrorCode, ErrorMessages } from "../constants/errorCodes";
-import { resetCodes, users, verificationCodes } from "../db/schema";
+import { confirmationTokens, resetCodes, users, verificationCodes } from "../db/schema";
 import type { User } from "../types/user";
 import { safeStringCompare } from "../utils/crypto";
 import { emailService } from "./emailService";
@@ -57,6 +57,9 @@ export async function createUser(email: string, password: string): Promise<User>
   if (!newUser) {
     throw new ServiceError(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create user");
   }
+
+  // Generate and send confirmation token
+  await generateAndSendConfirmationToken(email);
 
   // Return user without password
   const { password: _, ...userWithoutPassword } = newUser;
@@ -344,4 +347,71 @@ export async function verifyEmail(email: string, code: string): Promise<void> {
 
   // Note: In production, you would update a `verified` flag on the user record
   // For now, successful verification just consumes the code
+}
+
+/**
+ * Generate and send confirmation token
+ * NOTE: In production, implement rate limiting (e.g., max 3 requests per hour per email)
+ */
+async function generateAndSendConfirmationToken(email: string): Promise<string> {
+  const token = crypto.randomUUID();
+
+  // Delete any existing confirmation token for this email
+  await db.delete(confirmationTokens).where(eq(confirmationTokens.email, email));
+
+  // Insert new confirmation token
+  await db.insert(confirmationTokens).values({
+    email,
+    token,
+  });
+
+  // Send confirmation email
+  await emailService.sendConfirmationEmail(email, token);
+
+  return token;
+}
+
+/**
+ * Confirm account by token
+ */
+export async function confirmAccountByToken(token: string): Promise<void> {
+  // Check if confirmation token exists
+  const [confirmationData] = await db
+    .select()
+    .from(confirmationTokens)
+    .where(eq(confirmationTokens.token, token))
+    .limit(1);
+
+  if (!confirmationData) {
+    throw new ServiceError(ErrorCode.CONFIRMATION_TOKEN_NOT_FOUND);
+  }
+
+  // Check if user exists
+  const user = await getUserByEmail(confirmationData.email);
+  if (!user) {
+    throw new ServiceError(ErrorCode.USER_NOT_FOUND);
+  }
+
+  // Token is valid - delete it (can only be used once)
+  await db.delete(confirmationTokens).where(eq(confirmationTokens.token, token));
+
+  // Note: In production, you would update a `verified` flag on the user record
+  // For now, successful confirmation just consumes the token
+}
+
+/**
+ * Resend confirmation email
+ * NOTE: In production, implement rate limiting (e.g., max 3 requests per hour per email)
+ */
+export async function resendConfirmationEmail(email: string): Promise<void> {
+  // Check if user exists
+  const user = await getUserByEmail(email);
+  if (!user) {
+    throw new ServiceError(ErrorCode.USER_NOT_FOUND);
+  }
+
+  // Note: In production, add logic to check if email is already verified
+  // For now, we allow resending tokens as the user table doesn't have a verified flag yet
+
+  await generateAndSendConfirmationToken(email);
 }
