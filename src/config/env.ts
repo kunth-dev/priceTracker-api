@@ -29,6 +29,15 @@ const EnvSchema = z.object({
       }
       return tokens;
     }),
+  // SMTP Configuration
+  SMPT_HOST: z.string().optional(),
+  SMPT_PORT: z
+    .string()
+    .optional()
+    .transform((val) => (val ? Number(val) : undefined)),
+  SMPT_SERVICE: z.string().optional(),
+  SMPT_MAIL: z.string().email().optional().or(z.literal("")),
+  SMPT_APP_PASS: z.string().optional(),
 });
 
 export type Environment = z.infer<typeof EnvSchema>;

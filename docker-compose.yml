@@ -33,6 +33,12 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres_user}:${POSTGRES_PASSWORD:-postgres_password}@postgres:5432/${POSTGRES_DB:-price_tracker_db}
+      # SMTP Configuration (optional - for email sending)
+      SMPT_HOST: ${SMPT_HOST:-}
+      SMPT_PORT: ${SMPT_PORT:-}
+      SMPT_SERVICE: ${SMPT_SERVICE:-}
+      SMPT_MAIL: ${SMPT_MAIL:-}
+      SMPT_APP_PASS: ${SMPT_APP_PASS:-}
     depends_on:
       postgres:
         condition: service_healthy

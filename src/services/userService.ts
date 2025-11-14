@@ -5,6 +5,7 @@ import { ErrorCode, ErrorMessages } from "../constants/errorCodes";
 import { resetCodes, users, verificationCodes } from "../db/schema";
 import type { User } from "../types/user";
 import { safeStringCompare } from "../utils/crypto";
+import { emailService } from "./emailService";
 
 // Custom error class that includes error code
 class ServiceError extends Error {
@@ -138,9 +139,8 @@ export async function sendResetCode(email: string): Promise<{ code: string; expi
     expiresAt: expiresAt.toISOString(),
   });
 
-  // In production, this would send an email
-  // WARNING: Logging reset codes is a security vulnerability. Remove in production.
-  console.log(`Reset code for ${email}: ${code}`);
+  // Send reset code via email
+  await emailService.sendPasswordResetEmail(email, code);
 
   return { code, expiresAt };
 }
@@ -295,9 +295,8 @@ export async function sendVerificationCode(
     expiresAt: expiresAt.toISOString(),
   });
 
-  // In production, this would send an email
-  // WARNING: Logging verification codes is a security vulnerability. Remove in production.
-  console.log(`Verification code for ${email}: ${code}`);
+  // Send verification code via email
+  await emailService.sendVerificationEmail(email, code);
 
   return { code, expiresAt };
 }
