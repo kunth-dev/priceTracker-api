@@ -645,6 +645,41 @@ curl -X POST http://localhost:3002/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password123"}'
 
+# Forgot Password
+curl -X POST http://localhost:3002/api/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com"}'
+
+# Send Reset Code
+curl -X POST http://localhost:3002/api/auth/send-reset-code \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com"}'
+
+# Reset Password
+curl -X POST http://localhost:3002/api/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","code":"123456","newPassword":"newpassword123"}'
+
+# Verify Email
+curl -X POST http://localhost:3002/api/auth/verify-email \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","code":"123456"}'
+
+# Resend Verification Code
+curl -X POST http://localhost:3002/api/auth/resend-verification-code \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com"}'
+
+# Register Confirmation
+curl -X POST http://localhost:3002/api/auth/register-confirmation \
+  -H "Content-Type: application/json" \
+  -d '{"uuid":"a1b2c3d4-5e6f-7g8h-9i0j-k1l2m3n4o5p6"}'
+
+# Resend Confirmation Email
+curl -X POST http://localhost:3002/api/auth/resend-confirmation-email \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com"}'
+
 # Get user data (requires auth)
 curl -X GET http://localhost:3002/api/user/USER_ID_HERE \
   -H "Authorization: Bearer your_secret_bearer_token_here"
