@@ -27,9 +27,11 @@ COPY --chown=nodejs:nodejs src ./src
 COPY --chown=nodejs:nodejs drizzle.config.ts ./
 COPY --chown=nodejs:nodejs drizzle ./drizzle
 COPY --chown=nodejs:nodejs start.sh ./start.sh
+COPY --chown=nodejs:nodejs scripts ./scripts
 
-# Make start script executable
-RUN chmod +x start.sh
+# Make scripts executable
+RUN chmod +x start.sh && \
+    chmod +x scripts/*.sh 2>/dev/null || true
 
 # Create logs directory with proper permissions
 RUN mkdir -p logs && chown -R nodejs:nodejs logs

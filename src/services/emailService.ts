@@ -75,10 +75,9 @@ class EmailService implements IEmailService {
         secure: isSecure,
       });
 
-      // Verify connection configuration in production
-      if (env.NODE_ENV === "production") {
-        this.verifyConnection();
-      }
+      // Verify connection configuration (async, non-blocking)
+      // Wait a bit for container network to be fully initialized
+      setTimeout(() => this.verifyConnection(), 5000);
     } catch (error) {
       logger.error("Failed to initialize email transporter", { error });
       this.transporter = null;
@@ -87,6 +86,7 @@ class EmailService implements IEmailService {
 
   /**
    * Verify SMTP connection (async, doesn't block initialization)
+   * This is informational only and won't prevent email sending attempts
    */
   private async verifyConnection(): Promise<void> {
     if (!this.transporter) {
@@ -97,9 +97,12 @@ class EmailService implements IEmailService {
       await this.transporter.verify();
       logger.info("SMTP connection verified successfully");
     } catch (error) {
-      logger.error("SMTP connection verification failed", { error });
-      logger.warn(
-        "Email sending may not work. Please check SMTP configuration and network connectivity.",
+      // In production, log as warning instead of error
+      // The container might not have network access yet during startup
+      const logLevel = env.NODE_ENV === "production" ? "warn" : "error";
+      logger[logLevel]("SMTP connection verification failed", { error });
+      logger.info(
+        "SMTP verification failed, but email sending will still be attempted with retry logic.",
       );
     }
   }

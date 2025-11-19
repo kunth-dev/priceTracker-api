@@ -5,6 +5,7 @@
 ### ETIMEDOUT Error with CONN Command
 
 **Error Message:**
+
 ```json
 {
   "error": {
@@ -12,19 +13,53 @@
     "command": "CONN"
   },
   "level": "error",
-  "message": "Failed to send confirmation email to user@example.com"
+  "message": "SMTP connection verification failed"
 }
 ```
 
 **Cause:**
-This error indicates that the SMTP connection attempt timed out before establishing a connection to the mail server. Common in production environments, especially when running inside Docker containers.
+This error indicates that the SMTP connection attempt timed out before establishing a connection to the mail server. **This is especially common in Docker production environments** where containers have isolated networks.
 
 **Root Causes:**
-1. **Network/Firewall restrictions**: Docker container cannot reach the SMTP server
-2. **SSL/TLS certificate issues**: Self-signed or invalid certificates
-3. **Insufficient timeout settings**: Network latency requires longer timeouts
-4. **DNS resolution problems**: Container cannot resolve SMTP host
-5. **ISP blocking**: Some ISPs block outbound SMTP ports (25, 587, 465)
+
+1. **Docker Network Isolation**: Container cannot reach external SMTP servers
+2. **Firewall/ISP blocking**: Outbound SMTP ports (25, 587, 465) blocked
+3. **DNS resolution problems**: Container cannot resolve SMTP hostname
+4. **SSL/TLS certificate issues**: Self-signed or invalid certificates
+5. **Slow network**: Network latency requires longer timeouts
+
+## Quick Diagnostic Commands
+
+### From Docker Host
+
+```bash
+# Test if container is running
+docker ps | grep price-tracker-api
+
+# Check container logs
+docker logs price-tracker-api --tail 100
+
+# Test SMTP connectivity from host
+nc -zv smtp.gmail.com 587
+# or
+telnet smtp.gmail.com 587
+```
+
+### From Inside Container
+
+```bash
+# Enter the container
+docker exec -it price-tracker-api sh
+
+# Run shell diagnostic script
+sh /app/scripts/test-smtp-connection.sh
+
+# Run Node.js diagnostic script  
+node /app/scripts/test-smtp.mjs
+
+# Manual connectivity test
+nc -zv smtp.gmail.com 587
+```
 
 ## Solutions Implemented
 
@@ -95,33 +130,55 @@ SMTP_APP_PASS=your-ses-smtp-password
 
 ## Docker-Specific Considerations
 
-### Network Mode
-If using Docker with `--network host`, the container uses the host's network stack:
+### DNS Configuration (Already Applied)
+
+The `docker-compose.yml` has been updated with Google's DNS servers:
+
+```yaml
+services:
+  backend:
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+```
+
+This ensures the container can resolve external hostnames.
+
+### Network Mode (Alternative Solution)
+
+If DNS configuration doesn't solve the issue, you can use host networking mode (Linux only):
+
 ```yaml
 services:
   api:
     network_mode: host
 ```
 
-### DNS Resolution
-Add custom DNS servers if resolution fails:
-```yaml
-services:
-  api:
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-```
+**Note:** This removes network isolation and isn't recommended for security.
 
-### Outbound Firewall Rules
-Ensure Docker host allows outbound connections on SMTP ports:
+### Connection Verification Delay
+
+The email service now waits 5 seconds after initialization before verifying the connection, allowing the Docker network to fully initialize.
+
+### Diagnostic Scripts
+
+Two diagnostic scripts are included in the container:
+
+**Shell Script:**
 ```bash
-# Check if port is accessible
-nc -zv smtp.gmail.com 587
-
-# Or using telnet
-telnet smtp.gmail.com 587
+docker exec -it price-tracker-api sh /app/scripts/test-smtp-connection.sh
 ```
+
+**Node.js Script:**
+```bash
+docker exec -it price-tracker-api node /app/scripts/test-smtp.mjs
+```
+
+These scripts will test:
+- DNS resolution
+- Port connectivity  
+- Internet access
+- SMTP authentication
 
 ## Testing Email Configuration
 

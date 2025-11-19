@@ -249,6 +249,52 @@ src/
 - **Functional Programming:** Array methods instead of loops
 - **Type Safety:** Full TypeScript support
 
+## Troubleshooting
+
+### Email Not Sending in Docker/Production
+
+If you see `ETIMEDOUT` errors when sending emails:
+
+```bash
+# Quick diagnostic from inside container
+docker exec -it price-tracker-api node /app/scripts/test-smtp.mjs
+
+# Or use shell script
+docker exec -it price-tracker-api sh /app/scripts/test-smtp-connection.sh
+```
+
+**Common solutions:**
+1. Verify SMTP credentials are correct
+2. Check Docker container can access internet
+3. Ensure DNS is configured (already set to 8.8.8.8 in docker-compose.yml)
+4. Check firewall allows outbound connections on SMTP ports (587, 465)
+
+See [Email Troubleshooting Guide](docs/EMAIL_TROUBLESHOOTING.md) for detailed help.
+
+### Database Connection Issues
+
+```bash
+# Check if PostgreSQL is running
+docker ps | grep postgres
+
+# Check database logs
+docker logs price-tracker-postgres
+
+# Test connection from API container
+docker exec -it price-tracker-api sh
+psql $DATABASE_URL
+```
+
+### Container Not Starting
+
+```bash
+# View container logs
+docker logs price-tracker-api
+
+# Check environment variables
+docker exec -it price-tracker-api env | grep SMTP
+```
+
 ## License
 
 MIT
