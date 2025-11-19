@@ -40,26 +40,104 @@ class EmailService implements IEmailService {
     }
 
     try {
+      const isSecure = env.SMTP_PORT === 465;
+
       // Create transporter with SMTP configuration
       this.transporter = nodemailer.createTransport({
         host: env.SMTP_HOST,
         port: env.SMTP_PORT,
-        secure: env.SMTP_PORT === 465, // true for 465, false for other ports
+        secure: isSecure, // true for 465, false for other ports
         auth: {
           user: env.SMTP_MAIL,
           pass: env.SMTP_APP_PASS,
         },
-        // Add timeout configurations to prevent hanging connections
-        connectionTimeout: 10000, // 10 seconds for initial connection
-        greetingTimeout: 10000, // 10 seconds for greeting after connection
-        socketTimeout: 30000, // 30 seconds for socket inactivity timeout
+        // TLS configuration for production environments
+        tls: {
+          // Allow self-signed certificates in production environments
+          rejectUnauthorized: false,
+          // Minimum TLS version
+          minVersion: "TLSv1.2",
+          // Ciphers to use
+          ciphers: "SSLv3",
+        },
+        // Increase timeout configurations for production network conditions
+        connectionTimeout: 60000, // 60 seconds for initial connection
+        greetingTimeout: 30000, // 30 seconds for greeting after connection
+        socketTimeout: 60000, // 60 seconds for socket inactivity timeout
+        // Enable debug mode in development
+        debug: env.NODE_ENV === "development",
+        logger: env.NODE_ENV === "development",
       });
 
-      logger.info("Email transporter initialized successfully");
+      logger.info("Email transporter initialized successfully", {
+        host: env.SMTP_HOST,
+        port: env.SMTP_PORT,
+        secure: isSecure,
+      });
+
+      // Verify connection configuration in production
+      if (env.NODE_ENV === "production") {
+        this.verifyConnection();
+      }
     } catch (error) {
       logger.error("Failed to initialize email transporter", { error });
       this.transporter = null;
     }
+  }
+
+  /**
+   * Verify SMTP connection (async, doesn't block initialization)
+   */
+  private async verifyConnection(): Promise<void> {
+    if (!this.transporter) {
+      return;
+    }
+
+    try {
+      await this.transporter.verify();
+      logger.info("SMTP connection verified successfully");
+    } catch (error) {
+      logger.error("SMTP connection verification failed", { error });
+      logger.warn(
+        "Email sending may not work. Please check SMTP configuration and network connectivity.",
+      );
+    }
+  }
+
+  /**
+   * Send email with retry logic
+   */
+  private async sendMailWithRetry(
+    mailOptions: object,
+    maxRetries = 3,
+    retryDelay = 2000,
+  ): Promise<void> {
+    if (!this.transporter) {
+      throw new Error("Email transporter not initialized");
+    }
+
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await this.transporter.sendMail(mailOptions);
+        return; // Success
+      } catch (error) {
+        lastError = error as Error;
+        logger.warn(`Email send attempt ${attempt}/${maxRetries} failed`, {
+          error,
+          willRetry: attempt < maxRetries,
+        });
+
+        if (attempt < maxRetries) {
+          // Wait before retrying (exponential backoff)
+          await new Promise((resolve) => setTimeout(resolve, retryDelay * attempt));
+        }
+      }
+    }
+
+    // All retries failed
+    throw lastError;
   }
 
   /**
@@ -90,7 +168,7 @@ class EmailService implements IEmailService {
       `,
       };
 
-      await this.transporter.sendMail(mailOptions);
+      await this.sendMailWithRetry(mailOptions);
       logger.info(`Verification email sent to ${email}`);
     } catch (error) {
       logger.error(`Failed to send verification email to ${email}`, { error });
@@ -127,7 +205,7 @@ class EmailService implements IEmailService {
       `,
       };
 
-      await this.transporter.sendMail(mailOptions);
+      await this.sendMailWithRetry(mailOptions);
       logger.info(`Password reset email sent to ${email}`);
     } catch (error) {
       logger.error(`Failed to send password reset email to ${email}`, { error });
@@ -169,7 +247,7 @@ class EmailService implements IEmailService {
       `,
       };
 
-      await this.transporter.sendMail(mailOptions);
+      await this.sendMailWithRetry(mailOptions);
       logger.info(`Confirmation email sent to ${email}`);
     } catch (error) {
       logger.error(`Failed to send confirmation email to ${email}`, { error });
