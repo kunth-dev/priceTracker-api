@@ -1,0 +1,65 @@
+# Alternative docker-compose with host networking
+# Use this if SMTP ports are blocked in bridge network mode
+# WARNING: Only works on Linux hosts, removes network isolation
+
+services:
+  # PostgreSQL Database Service
+  postgres:
+    image: postgres:15-alpine
+    container_name: price-tracker-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-price_tracker_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API Service with host networking
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: price-tracker-api
+    restart: unless-stopped
+    network_mode: host  # Use host network stack - allows direct SMTP access
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres_user}:${POSTGRES_PASSWORD:-postgres_password}@localhost:5432/${POSTGRES_DB:-price_tracker_db}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+
+  # Drizzle Gateway - Database Management UI
+  drizzle-gateway:
+    image: ghcr.io/drizzle-team/gateway:latest
+    container_name: price-tracker-drizzle-gateway
+    restart: unless-stopped
+    ports:
+      - "4983:4983"
+    environment:
+      PORT: 4983
+      STORE_PATH: /app/data
+      MASTERPASS: ${DRIZZLE_GATEWAY_MASTERPASS:-changeme_secure_password}
+      DATABASE_URL_default: postgresql://${POSTGRES_USER:-postgres_user}:${POSTGRES_PASSWORD:-postgres_password}@localhost:5432/${POSTGRES_DB:-price_tracker_db}
+    volumes:
+      - drizzle_gateway_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    driver: local
+  drizzle_gateway_data:
+    driver: local

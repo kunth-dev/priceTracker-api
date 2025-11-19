@@ -20,15 +20,38 @@
 **Cause:**
 This error indicates that the SMTP connection attempt timed out before establishing a connection to the mail server. **This is especially common in Docker production environments** where containers have isolated networks.
 
+**Most Common Cause: Port 587 Blocked by Hosting Provider**
+
+Many hosting providers and ISPs block outbound SMTP ports (especially 25, 587) to prevent spam. This is the #1 reason for ETIMEDOUT errors in production.
+
 **Root Causes:**
 
-1. **Docker Network Isolation**: Container cannot reach external SMTP servers
-2. **Firewall/ISP blocking**: Outbound SMTP ports (25, 587, 465) blocked
-3. **DNS resolution problems**: Container cannot resolve SMTP hostname
-4. **SSL/TLS certificate issues**: Self-signed or invalid certificates
-5. **Slow network**: Network latency requires longer timeouts
+1. **🔥 SMTP Port Blocking (Most Common)**: Hosting provider/ISP blocks ports 25/587
+2. **Docker Network Isolation**: Container cannot reach external SMTP servers
+3. **Firewall rules**: Server firewall blocking outbound connections
+4. **DNS resolution problems**: Container cannot resolve SMTP hostname
+5. **SSL/TLS certificate issues**: Self-signed or invalid certificates
+
+## Quick Fix: Try Port 465
+
+**Before doing anything else, try switching to port 465:**
+
+In your GitHub repository variables, change `SMTP_PORT` from `587` to `465`.
+
+Port 465 (direct SSL) is less commonly blocked than port 587 (STARTTLS).
 
 ## Quick Diagnostic Commands
+
+### Test Which SMTP Ports Are Accessible
+
+**On your production server (outside Docker):**
+
+```bash
+# Run the port testing script
+bash /var/www/ptracker-api/scripts/test-smtp-ports.sh
+```
+
+This will test common SMTP providers and ports to see which ones work.
 
 ### From Docker Host
 
@@ -41,8 +64,7 @@ docker logs price-tracker-api --tail 100
 
 # Test SMTP connectivity from host
 nc -zv smtp.gmail.com 587
-# or
-telnet smtp.gmail.com 587
+nc -zv smtp.gmail.com 465
 ```
 
 ### From Inside Container
