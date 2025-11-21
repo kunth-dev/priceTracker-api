@@ -66,25 +66,45 @@ sleep 5
 
 # Request certificates for API domain
 echo "Requesting certificate for $API_DOMAIN..."
-docker-compose run --rm certbot certonly \
-    --webroot \
-    --webroot-path=/var/www/certbot \
-    --email $EMAIL \
-    --agree-tos \
-    --no-eff-email \
-    --force-renewal \
-    -d $API_DOMAIN
+if [ $RENEW -eq 1 ]; then
+    docker-compose run --rm certbot certonly \
+        --webroot \
+        --webroot-path=/var/www/certbot \
+        --email $EMAIL \
+        --agree-tos \
+        --no-eff-email \
+        --force-renewal \
+        -d $API_DOMAIN
+else
+    docker-compose run --rm certbot certonly \
+        --webroot \
+        --webroot-path=/var/www/certbot \
+        --email $EMAIL \
+        --agree-tos \
+        --no-eff-email \
+        -d $API_DOMAIN
+fi
 
 # Request certificates for Studio domain
 echo "Requesting certificate for $STUDIO_DOMAIN..."
-docker-compose run --rm certbot certonly \
-    --webroot \
-    --webroot-path=/var/www/certbot \
-    --email $EMAIL \
-    --agree-tos \
-    --no-eff-email \
-    --force-renewal \
-    -d $STUDIO_DOMAIN
+if [ $RENEW -eq 1 ]; then
+    docker-compose run --rm certbot certonly \
+        --webroot \
+        --webroot-path=/var/www/certbot \
+        --email $EMAIL \
+        --agree-tos \
+        --no-eff-email \
+        --force-renewal \
+        -d $STUDIO_DOMAIN
+else
+    docker-compose run --rm certbot certonly \
+        --webroot \
+        --webroot-path=/var/www/certbot \
+        --email $EMAIL \
+        --agree-tos \
+        --no-eff-email \
+        -d $STUDIO_DOMAIN
+fi
 
 # Reload nginx to use new certificates
 echo "Reloading nginx with new certificates..."
