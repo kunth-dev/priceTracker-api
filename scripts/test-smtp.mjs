@@ -86,7 +86,7 @@ transporter.verify()
       console.log('\n🔧 Troubleshooting steps:');
       console.log('   1. Run: docker exec -it price-tracker-api sh /app/scripts/test-smtp-connection.sh');
       console.log('   2. Check Docker host firewall');
-      console.log('   3. Verify DNS configuration in docker-compose.yml');
+      console.log('   3. Verify DNS configuration in docker compose configuration');
       console.log('   4. Try network_mode: host if on Linux');
     } else if (error.code === 'EAUTH') {
       console.log('\n💡 Authentication error:');
@@ -96,7 +96,7 @@ transporter.verify()
     } else if (error.code === 'ENOTFOUND') {
       console.log('\n💡 DNS resolution error:');
       console.log('   - Container cannot resolve SMTP_HOST');
-      console.log('   - Check DNS configuration in docker-compose.yml');
+      console.log('   - Check DNS configuration in docker compose configuration');
       console.log('   - Verify internet connectivity from container');
     }
     

@@ -153,9 +153,9 @@ jobs:
           password: ${{ secrets.SERVER_SSH_PASSWORD }}
           script: |
             cd /var/www/ptracker-api
-            docker-compose down
-            docker-compose up -d --build
-            docker-compose ps
+            docker compose down
+            docker compose up -d --build
+            docker compose ps
       
       - name: Verify Deployment
         uses: appleboy/ssh-action@v1.0.3
@@ -166,9 +166,9 @@ jobs:
           script: |
             cd /var/www/ptracker-api
             echo "Checking container status..."
-            docker-compose ps
+            docker compose ps
             
             echo "Checking API health..."
-            docker-compose logs --tail=50 backend
+            docker compose logs --tail=50 backend
             
             echo "Deployment completed!"

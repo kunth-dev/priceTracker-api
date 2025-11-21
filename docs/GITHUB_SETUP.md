@@ -133,8 +133,9 @@ sudo usermod -aG docker $USER
 ### 2. Docker Compose Installed
 ```bash
 # Install Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
+# Note: Modern Docker installations include Compose as a plugin
+# Verify installation with:
+docker compose version
 ```
 
 ### 3. Nginx Installed
@@ -188,7 +189,7 @@ curl https://studio.khdev.ru
 ```bash
 ssh user@khdev.ru
 cd /var/www/ptracker-api
-docker-compose ps
+docker compose ps
 ```
 
 ## Troubleshooting

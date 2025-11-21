@@ -145,8 +145,8 @@ If your server runs Linux and you have root access, you can bypass Docker networ
    ```
 4. Restart containers:
    ```bash
-   docker-compose down
-   docker-compose up -d
+   docker compose down
+   docker compose up -d
    ```
 
 ---

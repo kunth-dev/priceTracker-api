@@ -64,7 +64,7 @@ The deployment workflow performs the following steps:
 2. **Create Directories**: Creates necessary directories on the remote server
 3. **Copy Files**: Transfers application files to `/var/www/ptracker-api`
 4. **Create Environment File**: Generates `.env` file with configuration from GitHub secrets/variables
-5. **Deploy with Docker**: Builds and starts Docker containers using `docker-compose.yml`
+5. **Deploy with Docker**: Builds and starts Docker containers using `docker compose` command
 6. **Verify Deployment**: Checks container status and logs
 
 > **Note**: Nginx configuration should be set up manually on the server to expose the API at `api.khdev.ru` and Drizzle Studio at `studio.khdev.ru`.
@@ -128,10 +128,10 @@ ssh user@khdev.ru
 
 # Check container status
 cd /var/www/ptracker-api
-docker-compose ps
+docker compose ps
 
 # View logs
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # Test API endpoint
 curl https://api.khdev.ru/api
@@ -256,19 +256,19 @@ sudo certbot renew --dry-run
 ### Check Container Logs
 ```bash
 cd /var/www/ptracker-api
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### Restart Services
 ```bash
 cd /var/www/ptracker-api
-docker-compose restart
+docker compose restart
 ```
 
 ### Rebuild Containers
 ```bash
 cd /var/www/ptracker-api
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ### Check Nginx Status
@@ -281,10 +281,10 @@ sudo tail -f /var/log/nginx/api.khdev.ru.error.log
 ### Database Issues
 ```bash
 # Access database shell
-docker-compose exec postgres psql -U postgres -d price_tracker_db
+docker compose exec postgres psql -U postgres -d price_tracker_db
 
 # Check database migrations
-docker-compose exec backend npx drizzle-kit push
+docker compose exec backend npx drizzle-kit push
 ```
 
 ## Security Considerations
@@ -305,7 +305,7 @@ To rollback to a previous version:
    ```bash
    cd /var/www/ptracker-api
    git checkout <previous-commit>
-   docker-compose up -d --build
+   docker compose up -d --build
    ```
 
 ## Monitoring
@@ -317,10 +317,10 @@ Monitor your deployment with:
 docker stats
 
 # Container health status
-docker-compose ps
+docker compose ps
 
 # Application logs
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # Nginx access logs
 sudo tail -f /var/log/nginx/api.khdev.ru.access.log

@@ -180,7 +180,7 @@ SMTP_APP_PASS=your-password
 
 ### DNS Configuration (Already Applied)
 
-The `docker-compose.yml` has been updated with Google's DNS servers:
+The docker compose configuration has been updated with Google's DNS servers:
 
 ```yaml
 services:

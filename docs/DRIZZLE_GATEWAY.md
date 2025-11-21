@@ -13,7 +13,7 @@ Drizzle Gateway is automatically included in the Docker Compose setup.
 1. **Start the services**:
 
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 2. **Access Drizzle Gateway**:
@@ -120,8 +120,8 @@ For production deployments:
 
 **Solutions**:
 
-- Check if the container is running: `docker-compose ps`
-- View logs: `docker-compose logs drizzle-gateway`
+- Check if the container is running: `docker compose ps`
+- View logs: `docker compose logs drizzle-gateway`
 - Ensure port 4983 is not used by another service
 - Verify the gateway service started successfully
 
@@ -132,7 +132,7 @@ For production deployments:
 **Solutions**:
 
 - Verify `DRIZZLE_GATEWAY_MASTERPASS` in your `.env` file
-- Restart the gateway service: `docker-compose restart drizzle-gateway`
+- Restart the gateway service: `docker compose restart drizzle-gateway`
 - Check for special characters that might need escaping
 
 ### Database Connection Issues
@@ -141,31 +141,31 @@ For production deployments:
 
 **Solutions**:
 
-- Ensure PostgreSQL container is healthy: `docker-compose ps postgres`
+- Ensure PostgreSQL container is healthy: `docker compose ps postgres`
 - Verify database credentials in `docker-compose.yml`
 - Check network connectivity between containers
-- Review PostgreSQL logs: `docker-compose logs postgres`
+- Review PostgreSQL logs: `docker compose logs postgres`
 
 ## Useful Commands
 
 ```bash
 # View Gateway logs
-docker-compose logs -f drizzle-gateway
+docker compose logs -f drizzle-gateway
 
 # Restart Gateway
-docker-compose restart drizzle-gateway
+docker compose restart drizzle-gateway
 
 # Check Gateway health
 curl http://localhost:4983/health
 
 # Access Gateway shell (debugging)
-docker-compose exec drizzle-gateway sh
+docker compose exec drizzle-gateway sh
 
 # Stop Gateway
-docker-compose stop drizzle-gateway
+docker compose stop drizzle-gateway
 
 # Remove Gateway and its data
-docker-compose down -v
+docker compose down -v
 ```
 
 ## Alternative: Drizzle Studio CLI
