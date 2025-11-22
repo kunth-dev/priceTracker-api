@@ -10,6 +10,7 @@ const router = Router();
 
 // Private routes - authentication required
 router.use("/order", orderRoutes);
+router.use("/orders", orderRoutes); // Support both /order and /orders
 router.use("/user", userRoutes);
 // router.use("/trades", tradeRoutes);
 

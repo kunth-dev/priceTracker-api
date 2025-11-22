@@ -45,6 +45,31 @@ export const UpdateOrderSchema = z.object({
     .optional(),
 });
 
+// Query parameters schema for GET /api/orders
+export const GetOrdersQuerySchema = z.object({
+  page: z
+    .string()
+    .optional()
+    .transform((val) => (val ? Number.parseInt(val, 10) : 1))
+    .refine((val) => val > 0, { message: "Page must be a positive number" }),
+  sortBy: z.enum(["title", "price", "status", "createdAt", "updatedAt"]).optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+  filterBy: z.enum(["title", "price", "status", "link"]).optional(),
+  filterValue: z.string().optional(),
+});
+
+// Pagination response type
+export interface PaginatedOrdersResponse {
+  orders: Order[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+  };
+}
+
 // Type inference from schemas
 export type CreateOrderRequest = z.infer<typeof CreateOrderSchema>;
 export type UpdateOrderRequest = z.infer<typeof UpdateOrderSchema>;
+export type GetOrdersQuery = z.infer<typeof GetOrdersQuerySchema>;
