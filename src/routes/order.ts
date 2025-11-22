@@ -5,11 +5,42 @@ import { asyncHandler } from "../middleware/errorHandler";
 import { AppError } from "../middleware/errorHandler";
 import * as orderService from "../services/orderService";
 import type { ApiResponse } from "../types/api";
-import { CreateOrderSchema, UpdateOrderSchema } from "../types/order";
+import { CreateOrderSchema, GetOrdersQuerySchema, UpdateOrderSchema } from "../types/order";
 import { handleServiceError } from "../utils/errorHandler";
 import { validateRequest } from "../utils/validation";
 
 const router = Router();
+
+// Get all orders with pagination, sorting, and filtering (GET /api/orders)
+router.get(
+  "/",
+  asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    // Parse and validate query parameters
+    const validationResult = GetOrdersQuerySchema.safeParse(req.query);
+
+    if (!validationResult.success) {
+      const errorMessage = validationResult.error.errors[0]?.message || "Validation failed";
+      throw new AppError(errorMessage, 400, ErrorCode.VALIDATION_FAILED);
+    }
+
+    const query = validationResult.data;
+
+    const result = await orderService.getOrders(
+      query.page,
+      query.sortBy,
+      query.sortOrder,
+      query.filterBy,
+      query.filterValue,
+    );
+
+    const response: ApiResponse = {
+      success: true,
+      data: result,
+    };
+
+    res.status(200).json(response);
+  }),
+);
 
 // Create order (POST /api/order)
 router.post(
