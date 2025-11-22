@@ -446,6 +446,115 @@ Authorization: Bearer your_secret_bearer_token_here
 
 ---
 
+### Get All Orders
+
+Retrieve all orders with pagination, sorting, and filtering.
+
+**Endpoint:** `GET /api/orders`
+
+**Headers:**
+```
+Authorization: Bearer your_secret_bearer_token_here
+```
+
+**Query Parameters:**
+
+All query parameters are optional:
+
+- `page`: Page number (default: 1, must be positive integer)
+  - Example: `?page=5`
+- `sortBy`: Field to sort by
+  - Options: `title`, `price`, `status`, `createdAt`, `updatedAt`
+  - Example: `?sortBy=createdAt`
+- `sortOrder`: Sort direction (default: `desc`)
+  - Options: `asc`, `desc`
+  - Example: `?sortOrder=asc`
+- `filterBy`: Field to filter by
+  - Options: `title`, `price`, `status`, `link`
+  - Example: `?filterBy=status`
+- `filterValue`: Value to filter for (required if `filterBy` is provided)
+  - For `title` and `link`: performs case-insensitive partial match
+  - For `price` and `status`: performs exact match
+  - Example: `?filterBy=status&filterValue=active`
+
+**Example Requests:**
+
+```bash
+# Get first page of orders (default sorting by createdAt desc)
+GET /api/orders
+
+# Get page 3
+GET /api/orders?page=3
+
+# Sort by price ascending
+GET /api/orders?sortBy=price&sortOrder=asc
+
+# Filter active orders
+GET /api/orders?filterBy=status&filterValue=active
+
+# Complex query: page 2, sort by title ascending, filter by status
+GET /api/orders?page=2&sortBy=title&sortOrder=asc&filterBy=status&filterValue=active
+
+# Filter by title (partial match)
+GET /api/orders?filterBy=title&filterValue=premium
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "orders": [
+      {
+        "orderId": "a1b2c3d4-5e6f-7g8h-9i0j-k1l2m3n4o5p6",
+        "title": "Premium Subscription",
+        "price": "99.99",
+        "link": "https://example.com/product/123",
+        "status": "active",
+        "createdAt": "2025-11-08T05:20:12.123Z",
+        "updatedAt": "2025-11-08T05:20:12.123Z"
+      },
+      {
+        "orderId": "b2c3d4e5-6f7g-8h9i-0j1k-l2m3n4o5p6q7",
+        "title": "Basic Package",
+        "price": "29.99",
+        "link": "https://example.com/product/456",
+        "status": "draft",
+        "createdAt": "2025-11-08T05:15:30.456Z",
+        "updatedAt": "2025-11-08T05:15:30.456Z"
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "totalPages": 5,
+      "totalItems": 150,
+      "itemsPerPage": 30
+    }
+  }
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "error": "Page must be a positive number",
+  "errorCode": "VALIDATION_FAILED"
+}
+```
+
+**Error Response (401 Unauthorized):**
+```json
+{
+  "success": false,
+  "error": "Missing authorization",
+  "message": "Authorization header is required. Format: Authorization: Bearer <token>",
+  "timestamp": "2025-11-08T05:24:00.000Z"
+}
+```
+
+---
+
 ### Get Order by ID
 
 Retrieve order information by order ID.
@@ -699,6 +808,18 @@ curl -X POST http://localhost:3002/api/order \
   -H "Authorization: Bearer your_secret_bearer_token_here" \
   -H "Content-Type: application/json" \
   -d '{"title":"Premium Package","price":"99.99","link":"https://example.com/product","status":"active"}'
+
+# Get all orders with pagination (requires auth)
+curl -X GET http://localhost:3002/api/orders \
+  -H "Authorization: Bearer your_secret_bearer_token_here"
+
+# Get orders - page 3, sorted by price ascending (requires auth)
+curl -X GET "http://localhost:3002/api/orders?page=3&sortBy=price&sortOrder=asc" \
+  -H "Authorization: Bearer your_secret_bearer_token_here"
+
+# Get active orders only (requires auth)
+curl -X GET "http://localhost:3002/api/orders?filterBy=status&filterValue=active" \
+  -H "Authorization: Bearer your_secret_bearer_token_here"
 
 # Get order data (requires auth)
 curl -X GET http://localhost:3002/api/order/ORDER_ID_HERE \
